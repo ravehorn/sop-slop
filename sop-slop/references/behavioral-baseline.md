@@ -7,6 +7,7 @@ SOP SLOP was hardened from repeated supervised runs that delivered strong softwa
 3. Reversible technical and version questions continue after alignment unless decision ownership explicitly transfers to the controller.
 4. Release authority gets re-requested unless the requested completion target and authority source are bound at intake.
 5. Delivery can be factually complete while graph closure remains unproven unless run receipts and reviews are mandatory.
+6. A large annotation batch becomes noisy duplicate work unless every annotation is traced into atomic observations, grouped by underlying problem, and linked to one durable canonical task per accepted problem.
 
 ## Regression target
 
@@ -17,5 +18,6 @@ Across the next five comparable runs:
 - zero post-alignment questions about reversible technical choices or version tier
 - every production-targeted run either proves production verification or names a real blocking predicate
 - every closed run records a receipt and review classification
+- every annotation batch has complete source coverage, no duplicate tasks for supporting observations, and task completion backed by validated child-run evidence
 
 This baseline contains no customer, repository, task, or private run identifiers.

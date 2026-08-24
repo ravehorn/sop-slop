@@ -25,6 +25,17 @@ For each completed stage, retain:
 
 Use the task plan for transient orchestration. Put durable product truth only in the repository's canonical artifacts.
 
+## Annotation problem ledger
+
+Before implementation, show:
+
+1. batch totals: source annotations, atomic observations, underlying problems, supporting duplicates, clear problems, and problems needing clarification
+2. one row per underlying problem: problem ID, concise actual-versus-desired behavior, source annotation IDs, impact, confidence or reproduction state, canonical task link, route, and status
+3. one coverage line proving every source annotation is mapped to a problem or explicit non-actionable disposition
+4. the selected next problem or one material clarification question
+
+Do not print every repeated annotation in full when stable IDs and links preserve traceability.
+
 ## Decision artifact
 
 For strategy-decision work, produce the workspace's canonical decision format with:

@@ -1,4 +1,4 @@
 interface:
   display_name: "SOP SLOP"
-  short_description: "Keep product work focused through verified production"
-  default_prompt: "Use $sop-slop to keep this substantial product change focused and carry it through the minimum necessary gates to verified production."
+  short_description: "Turn product ideas and annotations into deployed work"
+  default_prompt: "Use $sop-slop to turn this substantial product change or annotation batch into focused, durable tasks and carry them through the minimum necessary gates to verified production."

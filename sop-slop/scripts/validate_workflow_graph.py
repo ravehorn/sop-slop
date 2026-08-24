@@ -178,6 +178,45 @@ def validate(graph: dict[str, Any]) -> list[str]:
     if focus_policy.get("blocking_dependency") != "keep_in_parent_run":
         errors.append("blocking dependencies must remain in the parent run")
 
+    annotation_policy = policies.get("annotation_batch")
+    if not isinstance(annotation_policy, dict):
+        errors.append("annotation_batch policy must be an object")
+        annotation_policy = {}
+    if annotation_policy.get("parent_unit") != "one_review_mission":
+        errors.append("annotation batches must preserve one parent review mission")
+    if annotation_policy.get("atomicize_compound_annotations") is not True:
+        errors.append("compound annotations must be atomized before clustering")
+    if annotation_policy.get("coverage_rule") != "every_observation_has_exactly_one_primary_problem_or_non_actionable_disposition":
+        errors.append("annotation coverage must reconcile every observation")
+    if annotation_policy.get("cluster_basis") != "underlying_problem_and_desired_outcome":
+        errors.append("annotations must cluster by underlying problem and desired outcome")
+    if annotation_policy.get("duplicates") != "supporting_evidence_not_duplicate_work":
+        errors.append("duplicate annotations must not create duplicate work")
+    if annotation_policy.get("unknown_values") != "record_unknown_never_guess":
+        errors.append("unknown annotation facts must never be guessed")
+    if annotation_policy.get("clarification") != "inspect_first_then_bounded_grill_me_one_material_question_at_a_time":
+        errors.append("annotation clarification must inspect first and ask one material grill question at a time")
+    if annotation_policy.get("clarification_scope") != "affected_problem_only_unless_dependency_blocks_batch":
+        errors.append("annotation ambiguity must block only the affected problem unless it is a dependency")
+    if annotation_policy.get("clear_problem_action") != "start_without_reconfirmation":
+        errors.append("clear annotation problems must start without reconfirmation")
+    if annotation_policy.get("task_bridge") != "one_idempotent_durable_task_per_accepted_problem_in_canonical_general_task_list":
+        errors.append("each accepted annotation problem must have one idempotent canonical task")
+    if annotation_policy.get("task_deduplication") != "reuse_equivalent_canonical_task":
+        errors.append("the annotation task bridge must reuse equivalent canonical tasks")
+    if annotation_policy.get("task_status_sync") != ["ready", "in_progress", "completed", "blocked", "failed"]:
+        errors.append("annotation task statuses must stay synchronized through the closed status set")
+    if annotation_policy.get("missing_task_ssot_or_authority") != "block_before_execution":
+        errors.append("annotation execution must block when the canonical task list or authority is missing")
+    if annotation_policy.get("execution") != "one_sequential_linked_child_run_per_ready_problem":
+        errors.append("annotation problems must execute as sequential linked child runs")
+    if annotation_policy.get("child_input") != "one_ledger_problem_reference_not_the_annotation_batch":
+        errors.append("annotation child runs must receive one ledger problem rather than recurse on the full batch")
+    if annotation_policy.get("write_concurrency") != "one_active_problem_writer":
+        errors.append("annotation batches must allow only one active problem writer")
+    if annotation_policy.get("completion") != "all_annotations_covered_and_all_accepted_problems_have_validated_terminal_receipts":
+        errors.append("annotation batch completion must require coverage and validated problem receipts")
+
     autonomy_policy = policies.get("autonomy")
     if not isinstance(autonomy_policy, dict):
         errors.append("autonomy policy must be an object")
@@ -240,6 +279,12 @@ def validate(graph: dict[str, Any]) -> list[str]:
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
     required_policy_assertions = {
+        "annotation_batch_preserves_coverage_and_tasks": {
+            "every_annotation_covered", "duplicates_do_not_create_tasks", "unknown_values_not_guessed",
+            "one_canonical_task_per_problem", "clear_problems_start_without_reconfirmation",
+            "ambiguous_problem_only_is_paused", "task_status_requires_validated_child_receipt",
+            "parent_waits_for_all_problem_receipts",
+        },
         "side_quest_preserves_parent": {
             "classifies_side_quest", "creates_linked_codex_task", "parent_route_unchanged", "parent_resumes_same_node", "no_authority_inheritance",
         },
@@ -252,7 +297,7 @@ def validate(graph: dict[str, Any]) -> list[str]:
         },
     }
     if set(policy_traces) != set(required_policy_assertions):
-        errors.append("policy traces must cover authorized and unauthorized side quests plus aligned release autonomy")
+        errors.append("policy traces must cover annotation batches, authorized and unauthorized side quests, and aligned release autonomy")
     for trace_id, required_assertions in required_policy_assertions.items():
         trace = policy_traces.get(trace_id, {})
         if not isinstance(trace.get("events"), list) or not trace.get("events"):
@@ -270,6 +315,29 @@ def validate(graph: dict[str, Any]) -> list[str]:
     }
     if not required_delegation_fields <= delegation_fields:
         errors.append("delegation_receipt must bind the bounded task, selected runtime, result, evidence, and controller validation")
+
+    annotation_ledger_fields = set(evidence.get("annotation_problem_ledger", {}).get("required_fields", []))
+    required_annotation_ledger_fields = {
+        "batch_id", "primary_mission", "source_revision", "annotation_ids", "annotation_count",
+        "observation_records", "problem_clusters", "coverage_map", "clarification_queue", "execution_order",
+        "task_refs", "status_counts", "issuer", "created_at", "updated_at",
+    }
+    if not required_annotation_ledger_fields <= annotation_ledger_fields:
+        errors.append("annotation_problem_ledger must preserve coverage, grouping, clarification, tasks, order, and status")
+    annotation_task_fields = set(evidence.get("annotation_task_receipt", {}).get("required_fields", []))
+    required_annotation_task_fields = {
+        "batch_id", "problem_id", "task_system", "task_id", "canonical_uri", "idempotency_key",
+        "action", "previous_status", "new_status", "evidence_refs", "actor", "created_at",
+    }
+    if not required_annotation_task_fields <= annotation_task_fields:
+        errors.append("annotation_task_receipt must bind one idempotent canonical task and its status evidence")
+    annotation_run_fields = set(evidence.get("annotation_problem_run_receipt", {}).get("required_fields", []))
+    required_annotation_run_fields = {
+        "batch_id", "problem_id", "annotation_ids", "child_run_id", "route", "requested_completion",
+        "status", "evidence_refs", "controller_validation", "closed_at",
+    }
+    if not required_annotation_run_fields <= annotation_run_fields:
+        errors.append("annotation_problem_run_receipt must bind one problem to a validated child run")
 
     if not isinstance(predicate_definitions, dict):
         errors.append("predicate_definitions must be an object")
@@ -423,6 +491,8 @@ def validate(graph: dict[str, Any]) -> list[str]:
             errors.append(f"trace {trace_id} ends at {current}, not {trace.get('ends_at')}")
 
     required_traces = {
+        "annotation_batch_groups_and_executes_problems",
+        "annotation_problem_uses_bounded_clarification",
         "material_route_decision",
         "failed_candidate_repairs",
         "missing_release_authority_blocks_before_action",
@@ -529,6 +599,47 @@ def validate(graph: dict[str, Any]) -> list[str]:
         actual_role_ids = set(configured.get("allowed_roles", [])) if isinstance(configured, dict) else set()
         if not required_role_ids <= actual_role_ids:
             errors.append(f"node {node_id} is missing required delegation roles: {sorted(required_role_ids - actual_role_ids)}")
+
+    annotation_nodes = {
+        "structure_annotation_batch",
+        "materialize_annotation_tasks",
+        "select_next_annotation_problem",
+        "clarify_annotation_problem",
+        "execute_annotation_problem",
+    }
+    if not annotation_nodes <= set(nodes):
+        errors.append("annotation batch lifecycle nodes are incomplete")
+    if nodes.get("structure_annotation_batch", {}).get("completion", {}) != {
+        "predicate": "annotation_problem_ledger_recorded",
+        "evidence": ["annotation_problem_ledger"],
+    }:
+        errors.append("structure_annotation_batch must complete from the reconciled problem ledger")
+    task_bridge = nodes.get("materialize_annotation_tasks", {})
+    if task_bridge.get("completion", {}).get("predicate") != "annotation_task_bridge_recorded":
+        errors.append("materialize_annotation_tasks must complete from canonical task receipts")
+    if "authority_envelope" not in task_bridge.get("inputs", []) or "annotation_task_receipt" not in task_bridge.get("completion", {}).get("evidence", []):
+        errors.append("the annotation task bridge must require authority and retain task receipts")
+    problem_execution = nodes.get("execute_annotation_problem", {})
+    if problem_execution.get("completion", {}).get("predicate") != "annotation_problem_run_recorded":
+        errors.append("execute_annotation_problem must complete from a validated child run")
+    if set(problem_execution.get("completion", {}).get("evidence", [])) != {
+        "annotation_problem_ledger", "annotation_problem_run_receipt", "annotation_task_receipt",
+    }:
+        errors.append("annotation problem completion must synchronize ledger, child receipt, and durable task")
+    annotation_iteration = edges.get("annotation_problem_to_selector", {})
+    if annotation_iteration.get("type") != "iteration" or annotation_iteration.get("budget") != "annotation_problem_queue":
+        errors.append("annotation problem execution must return through the bounded sequential queue")
+    clarification_iteration = edges.get("annotation_clarification_to_selector", {})
+    if clarification_iteration.get("type") != "iteration" or clarification_iteration.get("budget") != "annotation_clarification":
+        errors.append("annotation clarification must return through a bounded decision loop")
+    clarification_node = nodes.get("clarify_annotation_problem", {})
+    if clarification_node.get("executor") != {"kind": "skill", "id": "grill-me"}:
+        errors.append("annotation clarification must use the bounded grill-me executor")
+    if clarification_node.get("completion", {}).get("predicate") != "annotation_problem_clarification_recorded":
+        errors.append("annotation clarification must update the affected problem and durable task from decision evidence")
+    decision_hosts = set(dynamic_templates.get("prebuild_material_decision", {}).get("allowed_hosts", []))
+    if not {"structure_annotation_batch", "clarify_annotation_problem"} <= decision_hosts:
+        errors.append("annotation intake and clarification must host bounded material decisions")
 
     slice_receipt = evidence.get("slice_delivery_receipt", {})
     slice_fields = set(slice_receipt.get("required_fields", [])) if isinstance(slice_receipt, dict) else set()
@@ -922,6 +1033,22 @@ def self_test(graph: dict[str, Any]) -> tuple[list[str], int]:
     missing_focus_policy_trace = copy.deepcopy(graph)
     next(trace for trace in missing_focus_policy_trace["policy_trace_scenarios"] if trace["id"] == "side_quest_preserves_parent")["assertions"].remove("parent_resumes_same_node")
     cases.append(("missing focus policy trace", missing_focus_policy_trace, "missing required assertions"))
+
+    annotation_without_coverage = copy.deepcopy(graph)
+    annotation_without_coverage["policies"]["annotation_batch"]["coverage_rule"] = "best_effort"
+    cases.append(("annotation without full coverage", annotation_without_coverage, "reconcile every observation"))
+
+    duplicate_annotation_tasks = copy.deepcopy(graph)
+    duplicate_annotation_tasks["policies"]["annotation_batch"]["duplicates"] = "one_task_per_annotation"
+    cases.append(("duplicate annotation tasks", duplicate_annotation_tasks, "must not create duplicate work"))
+
+    annotation_task_without_authority = copy.deepcopy(graph)
+    next(node for node in annotation_task_without_authority["nodes"] if node["id"] == "materialize_annotation_tasks")["inputs"].remove("authority_envelope")
+    cases.append(("annotation task without authority", annotation_task_without_authority, "must require authority"))
+
+    recursive_annotation_child = copy.deepcopy(graph)
+    recursive_annotation_child["policies"]["annotation_batch"]["child_input"] = "full_annotation_batch"
+    cases.append(("recursive annotation child", recursive_annotation_child, "must receive one ledger problem"))
 
     for name, candidate, expected in cases:
         errors = validate(candidate)

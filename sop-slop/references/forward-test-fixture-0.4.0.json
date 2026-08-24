@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "forward_test": {
+    "run_id": "sop-slop-public-forward-0.4.0",
+    "graph_version": "0.4.0",
+    "mode": "evolution",
+    "lane": "product-change",
+    "tier": "T2",
+    "requested_completion": "production_verified",
+    "delivery_status": "completed",
+    "effective_status": "completed",
+    "selected_stages": [
+      "intake_run",
+      "structure_annotation_batch",
+      "materialize_annotation_tasks",
+      "select_next_annotation_problem",
+      "execute_annotation_problem",
+      "record_run_receipt",
+      "review_run",
+      "run_completed"
+    ],
+    "planned_slice_ids": [],
+    "observed_transitions": [
+      {"from": "intake_run", "to": "structure_annotation_batch"},
+      {"from": "structure_annotation_batch", "to": "materialize_annotation_tasks"},
+      {"from": "materialize_annotation_tasks", "to": "select_next_annotation_problem"},
+      {"from": "select_next_annotation_problem", "to": "execute_annotation_problem"},
+      {"from": "execute_annotation_problem", "to": "select_next_annotation_problem"},
+      {"from": "select_next_annotation_problem", "to": "execute_annotation_problem"},
+      {"from": "execute_annotation_problem", "to": "select_next_annotation_problem"},
+      {"from": "select_next_annotation_problem", "to": "record_run_receipt"},
+      {"from": "record_run_receipt", "to": "review_run"},
+      {"from": "review_run", "to": "run_completed"}
+    ],
+    "delegations": [],
+    "evidence": {
+      "route_card": [
+        {
+          "graph_version": "0.4.0",
+          "lane": "product-change",
+          "tier": "T2",
+          "primary_outcome": "Resolve three product annotations as two underlying problems and verify both in production.",
+          "observable_proof": "Every annotation maps to one problem, each problem has one canonical task, and both child runs have validated production receipts.",
+          "non_goals": ["one task per annotation", "duplicate tracker", "unrelated redesign"],
+          "requested_completion": "production_verified",
+          "current_node": "record_run_receipt",
+          "authority_source": "synthetic-fixture:bounded-annotation-delivery",
+          "entry_stage": "structure_annotation_batch",
+          "selected_stages": ["intake_run", "structure_annotation_batch", "materialize_annotation_tasks", "select_next_annotation_problem", "execute_annotation_problem", "record_run_receipt", "review_run", "run_completed"],
+          "skipped_stages": ["align_product", "validate_product_opportunity"],
+          "skip_reasons": {"align_product": "The desired behavior is explicit in the annotations.", "validate_product_opportunity": "The batch corrects accepted product behavior rather than testing demand."}
+        }
+      ],
+      "authority_envelope": [
+        {
+          "allowed_actions": ["read fixture", "create or reuse canonical tasks", "run bounded child delivery", "verify production"],
+          "forbidden_actions": ["destructive data changes", "create duplicate tracker"],
+          "resources": ["sop-slop/references/forward-test-fixture-0.4.0.json"],
+          "environments": ["local synthetic test"],
+          "limits": {"accepted_problems": 2, "active_writers": 1},
+          "expires_at": "2099-01-01T00:00:00Z"
+        }
+      ],
+      "annotation_problem_ledger": [
+        {
+          "batch_id": "annotation-batch-forward-0.4.0",
+          "primary_mission": "Resolve the supplied product annotations without duplicating work.",
+          "source_revision": "synthetic-ui-revision-1",
+          "annotation_ids": ["A01", "A02", "A03"],
+          "annotation_count": 3,
+          "observation_records": [
+            {"id": "A01.1", "annotation_id": "A01", "problem_id": "P01"},
+            {"id": "A02.1", "annotation_id": "A02", "problem_id": "P01"},
+            {"id": "A03.1", "annotation_id": "A03", "problem_id": "P02"}
+          ],
+          "problem_clusters": [
+            {"problem_id": "P01", "desired_outcome": "The primary action remains reachable on narrow screens.", "annotation_ids": ["A01", "A02"], "status": "completed"},
+            {"problem_id": "P02", "desired_outcome": "Saved values remain visible after reload.", "annotation_ids": ["A03"], "status": "completed"}
+          ],
+          "coverage_map": {"A01.1": "P01", "A02.1": "P01", "A03.1": "P02"},
+          "clarification_queue": [],
+          "execution_order": ["P01", "P02"],
+          "task_refs": {"P01": "TASK-101", "P02": "TASK-102"},
+          "status_counts": {"completed": 2, "blocked": 0, "failed": 0},
+          "issuer": "synthetic-fixture",
+          "created_at": "2026-01-01T00:00:00Z",
+          "updated_at": "2026-01-01T00:00:08Z"
+        }
+      ],
+      "annotation_task_receipt": [
+        {
+          "batch_id": "annotation-batch-forward-0.4.0",
+          "problem_id": "P01",
+          "task_system": "canonical-synthetic-list",
+          "task_id": "TASK-101",
+          "canonical_uri": "task://TASK-101",
+          "idempotency_key": "annotation-batch-forward-0.4.0:P01",
+          "action": "created_and_synchronized",
+          "previous_status": "ready",
+          "new_status": "completed",
+          "evidence_refs": ["annotation-problem-run:P01"],
+          "actor": "synthetic-controller",
+          "created_at": "2026-01-01T00:00:05Z"
+        },
+        {
+          "batch_id": "annotation-batch-forward-0.4.0",
+          "problem_id": "P02",
+          "task_system": "canonical-synthetic-list",
+          "task_id": "TASK-102",
+          "canonical_uri": "task://TASK-102",
+          "idempotency_key": "annotation-batch-forward-0.4.0:P02",
+          "action": "created_and_synchronized",
+          "previous_status": "ready",
+          "new_status": "completed",
+          "evidence_refs": ["annotation-problem-run:P02"],
+          "actor": "synthetic-controller",
+          "created_at": "2026-01-01T00:00:07Z"
+        }
+      ],
+      "annotation_problem_run_receipt": [
+        {
+          "batch_id": "annotation-batch-forward-0.4.0",
+          "problem_id": "P01",
+          "annotation_ids": ["A01", "A02"],
+          "child_run_id": "annotation-problem-run:P01",
+          "route": ["intake_run", "deliver_slice", "review_candidate", "exercise_candidate", "ship_change", "land_and_deploy_change", "run_completed"],
+          "requested_completion": "production_verified",
+          "status": "completed",
+          "evidence_refs": ["production-proof:P01"],
+          "controller_validation": "accepted",
+          "closed_at": "2026-01-01T00:00:05Z"
+        },
+        {
+          "batch_id": "annotation-batch-forward-0.4.0",
+          "problem_id": "P02",
+          "annotation_ids": ["A03"],
+          "child_run_id": "annotation-problem-run:P02",
+          "route": ["intake_run", "deliver_slice", "review_candidate", "exercise_candidate", "ship_change", "land_and_deploy_change", "run_completed"],
+          "requested_completion": "production_verified",
+          "status": "completed",
+          "evidence_refs": ["production-proof:P02"],
+          "controller_validation": "accepted",
+          "closed_at": "2026-01-01T00:00:07Z"
+        }
+      ],
+      "run_receipt": [
+        {
+          "run_id": "sop-slop-public-forward-0.4.0",
+          "graph_version": "0.4.0",
+          "status": "completed",
+          "decisions": [],
+          "transitions": ["intake_run->structure_annotation_batch", "structure_annotation_batch->materialize_annotation_tasks", "materialize_annotation_tasks->select_next_annotation_problem", "select_next_annotation_problem->execute_annotation_problem", "execute_annotation_problem->select_next_annotation_problem", "select_next_annotation_problem->record_run_receipt", "record_run_receipt->review_run"],
+          "evidence_refs": ["annotation_problem_ledger:annotation-batch-forward-0.4.0", "annotation_problem_run_receipt:P01", "annotation_problem_run_receipt:P02", "annotation_task_receipt:TASK-101", "annotation_task_receipt:TASK-102"],
+          "authority_use": ["canonical task writes", "bounded child delivery"],
+          "started_at": "2026-01-01T00:00:00Z",
+          "closed_at": "2026-01-01T00:00:09Z"
+        }
+      ],
+      "run_review_receipt": [
+        {
+          "run_id": "sop-slop-public-forward-0.4.0",
+          "graph_version": "0.4.0",
+          "review_status": "completed",
+          "delivery_status": "completed",
+          "effective_status": "completed",
+          "objective_results": {"hard_safety_and_truth": "pass", "requested_outcome_correctness": "pass", "annotation_coverage": "pass", "canonical_task_sync": "pass"},
+          "root_cause_class": "no_issue",
+          "review_error": null,
+          "proposal_ref": null,
+          "reviewer": "synthetic-fixture",
+          "created_at": "2026-01-01T00:00:10Z"
+        }
+      ]
+    },
+    "expected_diagnostics": []
+  }
+}

@@ -1,0 +1,701 @@
+{
+  "schema_version": 1,
+  "graph": {
+    "id": "product-sop",
+    "version": "0.3.1",
+    "activation": "supervised",
+    "start": "intake_run",
+    "terminals": ["run_completed", "run_blocked", "run_failed"],
+    "run_receipt_node": "record_run_receipt",
+    "review_node": "review_run"
+  },
+  "executor_kinds": ["controller", "human", "skill", "worker", "deterministic"],
+  "policies": {
+    "controller": "single_logical_controller",
+    "focus": {
+      "mission_anchor_fields": ["primary_outcome", "observable_proof", "non_goals", "requested_completion", "current_node", "authority_source"],
+      "new_input_classification": ["continuation_or_dependency", "explicit_replacement", "side_quest"],
+      "side_quest_action": "create_linked_codex_task_when_authorized_else_retain_prompt",
+      "parent_transition": "resume_same_node",
+      "parent_route_change": false,
+      "side_quest_authority_inheritance": "none",
+      "thread_creation_failure": "retain_prompt_and_resume",
+      "blocking_dependency": "keep_in_parent_run"
+    },
+    "autonomy": {
+      "alignment_lock": "accepted_outcome_behavior_scope_non_goals_and_authority",
+      "post_alignment_reversible_decisions": "controller_auto_decides",
+      "auto_decision_classes": ["technical", "dependency", "test_layer", "implementation", "formatting", "version_tier", "routine_release_mechanics"],
+      "human_question_classes": ["locked_behavior_or_scope_change", "authority_security_tenant_or_data_expansion", "destructive_or_hard_to_reverse", "meaningful_spend_or_external_communication", "production_target_change"],
+      "question_requires_blocked_completion_predicate": true,
+      "forbidden_reconfirmations": ["continue", "recommended_approach", "version", "ship", "merge_and_deploy"]
+    },
+    "release": {
+      "explicit_implementation_through_production_requested_completion": "production_verified",
+      "without_release_authority": "respect_requested_completion",
+      "invocation_authority": ["commit", "push", "open_pr", "merge", "deploy", "verify_production", "documented_bounded_recovery"],
+      "reconfirm_bound_authority": false,
+      "version_tier": "controller_auto_decides",
+      "nested_skill_final": "executor_return_not_outer_terminal",
+      "safety_stops": ["repository_rule_conflict", "destructive_or_hard_to_reverse", "authority_or_security_expansion", "missing_credential", "version_queue_conflict_or_manual_drift", "merge_conflict", "failed_required_check", "unhealthy_deployment"]
+    },
+    "unknown_guard": {
+      "action": "block",
+      "location": "originating_node",
+      "unblocker": "propose_smallest_safe_resolution",
+      "route_decision_node": "resolve_route_decision"
+    },
+    "status_handlers": {
+      "blocked": {"node": "record_run_receipt", "sets_status": "blocked"},
+      "fatal": {"node": "record_run_receipt", "sets_status": "failed"}
+    },
+    "human_decisions": {
+      "evidence": "decision_receipt",
+      "dynamic_template": "prebuild_material_decision",
+      "empty_answer": "unanswered",
+      "changed_answer": "invalidate_dependents_or_start_successor_run"
+    },
+    "evidence": {
+      "bind_to_exact_subject": true,
+      "retain_stale_receipts": true,
+      "stale_receipts_satisfy_completion": false
+    },
+    "parallelism": {
+      "fork_mode": "explicit",
+      "join_mode": "all_dispatched",
+      "readers_require_frozen_revision": true,
+      "writers_require_isolation_lease": true,
+      "arbitrary_or_split": false
+    },
+    "delegation": {
+      "transition_authority": "controller_only",
+      "execution_lifecycle": "fresh_agent_thread",
+      "continuity_sources": ["canonical_graph_artifacts", "reviewed_shared_memory"],
+      "selection_factors": ["ambiguity", "risk", "cost", "parallelizability"],
+      "selection_output": ["role_id", "model", "reasoning_effort"],
+      "model_resolution": "current_available_model_catalog",
+      "task_states": ["prepared", "dispatched", "returned", "validated", "rejected"],
+      "result_handling": "controller_consolidates_and_validates",
+      "delegation_receipt_completes_node": false,
+      "parallel_read_review_test": true,
+      "parallel_write": "isolated_disjoint_slice_or_serialized",
+      "persistent_role_config": "optional_projection_not_private_memory"
+    },
+    "cycles": {
+      "budget_source": "authority_envelope",
+      "on_exhaustion": "blocked"
+    },
+    "learning": {
+      "review_every_closed_run": true,
+      "objective_order": [
+        "hard_safety_and_truth",
+        "requested_outcome_correctness",
+        "fewer_human_corrections_and_failed_loops",
+        "autonomy_time_and_cost"
+      ],
+      "root_cause_classes": ["no_issue", "executor_issue", "graph_issue", "policy_issue"],
+      "v0_mode": "proposal_only",
+      "review_failure": {
+        "action": "emit_degraded_receipt",
+        "root_cause_class": "policy_issue",
+        "preserve_run_status": true,
+        "proposals_allowed": false
+      },
+      "confirmed_hard_invariant_breach": {
+        "preserve_delivery_receipt": true,
+        "effective_status": "failed",
+        "may_upgrade_status": false
+      },
+      "promotion_mode": "staged",
+      "future_auto_promotion": "nonsemantic_presentation_and_diagnostics_within_policy_ceiling",
+      "pre_semantic_unlock_auto_promotable": ["presentation_only", "diagnostics_only"],
+      "semantic_promotion_unlock_requirements": [
+        "executable_historical_scenario_replay",
+        "independent_semantic_evaluator",
+        "human_approved_semantic_policy_ceiling"
+      ],
+      "pre_semantic_unlock_human_approved": [
+        "node_semantic_change",
+        "edge_topology_change",
+        "guard_semantic_change",
+        "evidence_requirement_change"
+      ],
+      "always_human_approved": [
+        "authority_expansion",
+        "hard_invariant_weakening",
+        "required_evidence_removal",
+        "production_boundary_change",
+        "tenant_or_data_boundary_change",
+        "policy_ceiling_expansion"
+      ],
+      "promotion_requirements": [
+        "structural_validation",
+        "historical_receipt_replay",
+        "independent_forward_test",
+        "applicable_promotion_authority"
+      ]
+    }
+  },
+  "specialist_roles": [
+    {
+      "id": "explorer",
+      "purpose": "Inspect code, architecture, canonical documents, and primary sources without changing the subject under review.",
+      "access_mode": "read_only",
+      "default_model_class": "balanced",
+      "default_reasoning_effort": "high",
+      "permission_ceiling": "read_only",
+      "stop_condition": "Return findings and evidence references when the bounded question is answered or blocked."
+    },
+    {
+      "id": "implementation_worker",
+      "purpose": "Implement one approved vertical slice or bounded candidate repair.",
+      "access_mode": "isolated_write",
+      "default_model_class": "strongest_suitable_coding",
+      "default_reasoning_effort": "high",
+      "permission_ceiling": "one_isolated_slice_or_serialized_workspace",
+      "stop_condition": "Stop after the owned slice and its focused checks are complete, blocked, or outside scope."
+    },
+    {
+      "id": "reviewer",
+      "purpose": "Independently review product, engineering, code, security, or run evidence without changing the reviewed subject.",
+      "access_mode": "read_only",
+      "default_model_class": "strongest_suitable",
+      "default_reasoning_effort": "high",
+      "permission_ceiling": "read_only",
+      "stop_condition": "Return prioritized findings, disposition, and evidence; do not fix or advance the graph."
+    },
+    {
+      "id": "qa_tester",
+      "purpose": "Exercise runnable behavior, browser flows, and deterministic checks against a frozen candidate.",
+      "access_mode": "test_only",
+      "default_model_class": "balanced",
+      "default_reasoning_effort": "medium",
+      "permission_ceiling": "read_execute_tests_and_test_artifacts_only",
+      "stop_condition": "Return reproducible results and evidence when the assigned checks finish, block, or reveal a candidate defect."
+    }
+  ],
+  "evidence_types": [
+    {
+      "id": "route_card",
+      "required_fields": ["graph_version", "lane", "tier", "primary_outcome", "observable_proof", "non_goals", "requested_completion", "current_node", "authority_source", "entry_stage", "selected_stages", "skipped_stages", "skip_reasons"]
+    },
+    {
+      "id": "authority_envelope",
+      "required_fields": ["allowed_actions", "forbidden_actions", "resources", "environments", "limits", "expires_at"]
+    },
+    {
+      "id": "decision_receipt",
+      "required_fields": ["decision_id", "question", "options", "recommendation", "selection", "actor", "scope", "decided_at"]
+    },
+    {
+      "id": "alignment_lock_receipt",
+      "required_fields": ["accepted_outcome", "accepted_behavior", "accepted_scope", "non_goals", "authority_boundaries", "subject_revision", "actor", "locked_at"]
+    },
+    {
+      "id": "artifact_receipt",
+      "required_fields": ["artifact_kind", "uri", "digest", "subject_revision", "issuer", "created_at"]
+    },
+    {
+      "id": "slice_delivery_receipt",
+      "required_fields": ["slice_id", "plan_digest", "delivered_commit", "artifact_refs", "verification_refs", "result", "issuer", "created_at"]
+    },
+    {
+      "id": "verification_receipt",
+      "required_fields": ["check_id", "subject_digest", "result", "details_uri", "issuer", "created_at"]
+    },
+    {
+      "id": "external_action_receipt",
+      "required_fields": ["action", "resource", "environment", "external_id", "result", "actor", "created_at"]
+    },
+    {
+      "id": "fork_manifest",
+      "required_fields": ["fork_id", "subject_digest", "dispatched_branches", "isolation", "created_at"]
+    },
+    {
+      "id": "join_receipt",
+      "required_fields": ["join_id", "fork_id", "subject_digest", "received_branches", "result", "created_at"]
+    },
+    {
+      "id": "delegation_receipt",
+      "required_fields": ["delegation_id", "execution_id", "parent_run_id", "graph_version", "node_id", "role_id", "model", "reasoning_effort", "ownership_scope", "allowed_tools", "permissions", "input_refs", "expected_output", "verification_criteria", "stop_condition", "isolation", "result", "evidence_refs", "controller_validation", "issuer", "created_at"]
+    },
+    {
+      "id": "run_receipt",
+      "required_fields": ["run_id", "graph_version", "status", "decisions", "transitions", "evidence_refs", "authority_use", "started_at", "closed_at"]
+    },
+    {
+      "id": "run_review_receipt",
+      "required_fields": ["run_id", "graph_version", "review_status", "delivery_status", "effective_status", "objective_results", "root_cause_class", "review_error", "proposal_ref", "reviewer", "created_at"]
+    },
+    {
+      "id": "improvement_proposal",
+      "required_fields": ["proposal_id", "base_graph_version", "change_class", "risk_class", "expected_effect", "evidence_refs", "validation_plan", "promotion_status"]
+    }
+  ],
+  "predicates": [
+    {"id": "run_classified", "kind": "completion", "inputs": ["state.intent", "state.repository_rules", "route_card", "authority_envelope"]},
+    {"id": "entry_stage_selected", "kind": "completion", "inputs": ["route_card"]},
+    {"id": "human_decision_recorded", "kind": "completion", "inputs": ["decision_receipt"]},
+    {"id": "alignment_locked", "kind": "completion", "inputs": ["artifact_receipt", "alignment_lock_receipt"]},
+    {"id": "current_artifact_recorded", "kind": "completion", "inputs": ["artifact_receipt"]},
+    {"id": "verification_recorded", "kind": "completion", "inputs": ["verification_receipt"]},
+    {"id": "review_disposition_recorded", "kind": "completion", "inputs": ["verification_receipt"]},
+    {"id": "strategy_decision_recorded", "kind": "completion", "inputs": ["artifact_receipt"]},
+    {"id": "next_slice_selected", "kind": "completion", "inputs": ["artifact_receipt"]},
+    {"id": "slice_delivery_recorded", "kind": "completion", "inputs": ["slice_delivery_receipt"]},
+    {"id": "candidate_repair_recorded", "kind": "completion", "inputs": ["artifact_receipt", "verification_receipt"]},
+    {"id": "candidate_assembled", "kind": "completion", "inputs": ["artifact_receipt"]},
+    {"id": "fork_manifest_recorded", "kind": "completion", "inputs": ["fork_manifest"]},
+    {"id": "all_dispatched_evidence_current", "kind": "completion", "inputs": ["fork_manifest", "join_receipt"]},
+    {"id": "candidate_resolution_recorded", "kind": "completion", "inputs": ["artifact_receipt"]},
+    {"id": "release_preflight_recorded", "kind": "completion", "inputs": ["verification_receipt", "authority_envelope"]},
+    {"id": "compound_release_recorded", "kind": "completion", "inputs": ["external_action_receipt", "verification_receipt", "authority_envelope"]},
+    {"id": "release_target_classified", "kind": "completion", "inputs": ["route_card", "external_action_receipt"]},
+    {"id": "run_receipt_recorded", "kind": "completion", "inputs": ["run_receipt"]},
+    {"id": "run_review_recorded", "kind": "completion", "inputs": ["run_receipt", "run_review_receipt"]},
+    {"id": "run_closed", "kind": "completion", "inputs": ["run_review_receipt"]},
+    {"id": "stage_completed", "kind": "guard", "inputs": ["state.current_stage", "state.current_completion_receipt"]},
+    {"id": "external_action_succeeded", "kind": "guard", "inputs": ["external_action_receipt"]},
+    {"id": "external_action_blocked", "kind": "guard", "inputs": ["external_action_receipt"]},
+    {"id": "external_action_failed", "kind": "guard", "inputs": ["external_action_receipt"]},
+    {"id": "decision_recorded", "kind": "guard", "inputs": ["decision_receipt"]},
+    {"id": "entry_stage_requires_decision", "kind": "guard", "inputs": ["route_card", "state.unresolved_route_fact"]},
+    {"id": "review_accepted", "kind": "guard", "inputs": ["verification_receipt"]},
+    {"id": "review_revision_required", "kind": "guard", "inputs": ["verification_receipt", "state.revision_budget"]},
+    {"id": "review_fatal", "kind": "guard", "inputs": ["verification_receipt"]},
+    {"id": "strategy_opportunity_review_required", "kind": "guard", "inputs": ["state.strategy_scope"]},
+    {"id": "strategy_opportunity_review_not_required", "kind": "guard", "inputs": ["state.strategy_scope"]},
+    {"id": "strategy_creates_product_change", "kind": "guard", "inputs": ["artifact_receipt", "state.requested_completion"]},
+    {"id": "strategy_run_complete", "kind": "guard", "inputs": ["artifact_receipt", "state.requested_completion"]},
+    {"id": "product_opportunity_review_required", "kind": "guard", "inputs": ["state.product_premise"]},
+    {"id": "product_opportunity_review_not_required", "kind": "guard", "inputs": ["state.product_premise"]},
+    {"id": "product_review_finishes_run", "kind": "guard", "inputs": ["state.lane", "state.requested_completion"]},
+    {"id": "product_spec_required", "kind": "guard", "inputs": ["state.lane", "state.requested_completion"]},
+    {"id": "spec_finishes_run", "kind": "guard", "inputs": ["state.requested_completion"]},
+    {"id": "experience_review_required", "kind": "guard", "inputs": ["state.human_interaction", "state.requested_completion"]},
+    {"id": "engineering_review_required_next", "kind": "guard", "inputs": ["state.human_interaction", "state.requested_completion"]},
+    {"id": "experience_review_finishes_run", "kind": "guard", "inputs": ["state.lane", "state.requested_completion"]},
+    {"id": "engineering_review_follows", "kind": "guard", "inputs": ["state.lane", "state.requested_completion"]},
+    {"id": "engineering_review_finishes_run", "kind": "guard", "inputs": ["state.lane", "state.requested_completion"]},
+    {"id": "slicing_required", "kind": "guard", "inputs": ["state.requested_completion", "state.spec"]},
+    {"id": "unfinished_slice_exists", "kind": "guard", "inputs": ["state.slice_plan", "slice_delivery_receipt"]},
+    {"id": "all_slices_complete", "kind": "guard", "inputs": ["state.slice_plan", "slice_delivery_receipt"]},
+    {"id": "candidate_revision_required", "kind": "guard", "inputs": ["join_receipt", "state.revision_budget"]},
+    {"id": "candidate_reaches_requested_level", "kind": "guard", "inputs": ["join_receipt", "state.requested_completion"]},
+    {"id": "candidate_release_requested", "kind": "guard", "inputs": ["join_receipt", "state.requested_completion"]},
+    {"id": "candidate_fatal", "kind": "guard", "inputs": ["join_receipt"]},
+    {"id": "release_authority_needed", "kind": "guard", "inputs": ["verification_receipt", "authority_envelope", "state.requested_completion"]},
+    {"id": "release_execution_authorized", "kind": "guard", "inputs": ["verification_receipt", "authority_envelope", "state.requested_completion"]},
+    {"id": "release_preflight_failed", "kind": "guard", "inputs": ["verification_receipt"]},
+    {"id": "authority_granted", "kind": "guard", "inputs": ["decision_receipt", "authority_envelope"]},
+    {"id": "authority_denied", "kind": "guard", "inputs": ["decision_receipt"]},
+    {"id": "ship_reaches_requested_level", "kind": "guard", "inputs": ["route_card", "external_action_receipt"]},
+    {"id": "ship_requires_land_and_deploy", "kind": "guard", "inputs": ["route_card", "external_action_receipt"]},
+    {"id": "run_status_completed", "kind": "guard", "inputs": ["run_receipt", "run_review_receipt"]},
+    {"id": "run_status_blocked", "kind": "guard", "inputs": ["run_receipt", "run_review_receipt"]},
+    {"id": "run_status_failed", "kind": "guard", "inputs": ["run_receipt", "run_review_receipt"]},
+    {"id": "entry_stage_is_align_strategy", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_validate_strategy_opportunity", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_record_strategy_decision", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_map_program", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_align_product", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_validate_product_opportunity", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_review_product_direction", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_specify_product", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_review_experience", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_review_engineering", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_plan_slices", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_select_next_slice", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_assemble_candidate", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_candidate_verification_fork", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_prepare_release", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_ship_change", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_resolve_ship_success", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_land_and_deploy_change", "kind": "guard", "inputs": ["route_card"]},
+    {"id": "entry_stage_is_record_run_receipt", "kind": "guard", "inputs": ["route_card"]}
+  ],
+  "predicate_definitions": {
+    "run_classified": "True only when one coherent requested outcome has a mission anchor, lane, tier, completion target, selected and skipped stages with reasons, and a valid authority envelope.",
+    "entry_stage_selected": "True only when route_card.entry_stage names exactly one known node or marks routing as requiring a human decision.",
+    "human_decision_recorded": "True only when every decision-receipt field is present and selection is non-empty and matches an offered choice or explicit free-form answer.",
+    "alignment_locked": "True only when the current alignment artifact is recorded and a receipt binds the accepted outcome, behavior, scope, non-goals, and authority boundaries to that exact subject revision.",
+    "current_artifact_recorded": "True only when the artifact receipt resolves and its digest equals the current subject revision required by the node.",
+    "verification_recorded": "True only when a non-stale verification receipt records pass, fail, or blocked for the exact subject digest.",
+    "review_disposition_recorded": "True only when a non-stale gating-review receipt records exactly one of accepted, revision_required, or fatal for the exact subject digest.",
+    "strategy_decision_recorded": "True only when the settled strategy decision is present in the workspace's canonical artifact and its receipt matches that artifact digest.",
+    "next_slice_selected": "True only when the selector records exactly one incomplete approved slice or records that no approved slices remain.",
+    "slice_delivery_recorded": "True only when one receipt binds the approved slice ID and plan digest to its delivered commit and focused verification references; later unrelated repository movement does not stale it.",
+    "candidate_repair_recorded": "True only when the repaired candidate artifact and focused verification receipt reference the same exact repaired candidate revision.",
+    "candidate_assembled": "True only when the candidate manifest names one frozen revision, includes every approved slice receipt for the current plan digest, and each delivered commit is represented in the candidate history.",
+    "fork_manifest_recorded": "True only when the fork manifest binds all dispatched branches and their isolation mode to one frozen subject digest.",
+    "all_dispatched_evidence_current": "True only when every branch named by the fork manifest returned non-stale evidence for the same subject digest.",
+    "candidate_resolution_recorded": "True only when the joined evidence is classified as accepted, revision_required, or fatal and the result is recorded for that candidate digest.",
+    "release_preflight_recorded": "True only when release readiness, repository state, the requested release level, and the complete authority required by each compound release executor are recorded for the exact candidate revision.",
+    "compound_release_recorded": "True only when the compound executor records every attempted external action, final result, verification result, authority used, and exact subject revision.",
+    "release_target_classified": "True only when a successful ship receipt is current and the route card selects exactly one next outcome: stop at the change request or invoke land-and-deploy.",
+    "run_receipt_recorded": "True only when an immutable receipt records graph version, status, decisions, transitions, evidence references, authority use, and timestamps.",
+    "run_review_recorded": "True when either a normal ordered-objective review is complete or a degraded receipt records review_error, policy_issue, no proposal, and preserves delivery_status as effective_status; a confirmed hard-invariant breach preserves the delivery receipt and sets effective_status to failed.",
+    "run_closed": "True only when the terminal status matches the reviewed run receipt and the run review receipt is retained.",
+    "stage_completed": "True only when the current node's declared completion predicate is true using current, non-stale required evidence.",
+    "external_action_succeeded": "True only when the current compound external-action receipt records success for every required action against the exact authorized resource, environment, and revision.",
+    "external_action_blocked": "True only when the current compound external-action receipt records blocked, identifies one unresolved gate, and records no unauthorized action.",
+    "external_action_failed": "True only when the current compound external-action receipt records a non-recoverable failure after preserving the attempted actions and evidence.",
+    "decision_recorded": "True only when the pending material decision satisfies human_decision_recorded and its scope matches the waiting run.",
+    "entry_stage_requires_decision": "True only when current evidence cannot select exactly one entry stage because a material routing fact is unresolved.",
+    "review_accepted": "True only when the current gating-review receipt disposition equals accepted for the exact current subject digest.",
+    "review_revision_required": "True only when the current gating-review receipt disposition equals revision_required, identifies the owning artifact and root cause, and its revision budget remains.",
+    "review_fatal": "True only when the current gating-review receipt disposition equals fatal or revision_required cannot continue because its bounded revision budget is exhausted.",
+    "strategy_opportunity_review_required": "True only when the strategy decision concerns a customer problem, demand, wedge, or product opportunity and no current opportunity review exists.",
+    "strategy_opportunity_review_not_required": "True only when strategy_opportunity_review_required is false for an evidenced non-opportunity strategy decision.",
+    "strategy_creates_product_change": "True only when the canonical strategy decision explicitly requires a change to product behavior or product-domain truth.",
+    "strategy_run_complete": "True only when the strategy decision is the requested completion target and strategy_creates_product_change is false.",
+    "product_opportunity_review_required": "True only when problem, demand, wedge, or solution premise remains disputed and no current opportunity review resolves it.",
+    "product_opportunity_review_not_required": "True only when product_opportunity_review_required is false and a skip reason cites current canonical evidence.",
+    "product_review_finishes_run": "True only when the product review disposition is accepted and this is review-only work or the requested completion target is the reviewed product direction.",
+    "product_spec_required": "True only when the product review disposition is accepted, the run continues as a product change, and no current canonical specification captures the settled decisions.",
+    "spec_finishes_run": "True only when the requested completion target is the canonical specification and no selected downstream review remains.",
+    "experience_review_required": "True only when a person sees or interacts with the change and no current design-review receipt covers the specification digest.",
+    "engineering_review_required_next": "True only when experience_review_required is false and a T2 or T3 build still lacks engineering-review evidence for the specification digest.",
+    "experience_review_finishes_run": "True only when the experience-review disposition is accepted and this is design-review-only work or the requested completion target is the reviewed interaction contract.",
+    "engineering_review_follows": "True only when the experience-review disposition is accepted, the run continues beyond experience review, and engineering-review evidence is missing or stale.",
+    "engineering_review_finishes_run": "True only when the engineering-review disposition is accepted and this is engineering-review-only work or the requested completion target is the reviewed implementation plan.",
+    "slicing_required": "True only when the engineering-review disposition is accepted, the run requests implementation, and the reviewed specification contains at least one undelivered vertical slice.",
+    "unfinished_slice_exists": "True only when exactly one next approved slice can be selected after excluding slices with a valid receipt for that slice ID and current plan digest, plus explicitly blocked slices.",
+    "all_slices_complete": "True only when every approved slice has a valid receipt bound to its slice ID, current plan digest, and delivered commit, and unfinished_slice_exists is false.",
+    "candidate_revision_required": "True only when joined candidate evidence contains a recoverable failure and the candidate-revision budget is not exhausted.",
+    "candidate_reaches_requested_level": "True only when candidate evidence is accepted and the requested completion target is candidate or earlier.",
+    "candidate_release_requested": "True only when candidate evidence is accepted and the requested completion target requires PR, merge, staging, or production evidence.",
+    "candidate_fatal": "True only when joined evidence contains a non-recoverable failure or the applicable revision budget is exhausted.",
+    "release_authority_needed": "True only when preflight otherwise permits release but the authority envelope omits any action the selected compound executors may perform: commit, push, and change-request creation for ship; plus merge, deploy, verify, and recovery for land-and-deploy.",
+    "release_execution_authorized": "True only when preflight passes and the authority envelope covers every action, resource, environment, limit, expiry, and recovery boundary that all selected compound release executors may use.",
+    "release_preflight_failed": "True only when preflight records a non-authority failure that prevents safe invocation of a compound release executor.",
+    "authority_granted": "True only when a non-empty human decision explicitly adds the complete compound action set, resources, environments, limits, recovery boundary, and expiry required by the requested release level.",
+    "authority_denied": "True only when the human explicitly refuses the requested authority; unanswered is neither granted nor denied.",
+    "ship_reaches_requested_level": "True only when ship succeeded and the requested completion level is the verified change request produced by ship.",
+    "ship_requires_land_and_deploy": "True only when ship succeeded, its exact remote revision is current, and the requested completion level requires merge and deployment.",
+    "run_status_completed": "True only when run_review_receipt.effective_status equals completed and delivery_status was not upgraded from a less safe status.",
+    "run_status_blocked": "True only when run_review_receipt.effective_status equals blocked and its exact unresolved gate and proposed unblocker are recorded.",
+    "run_status_failed": "True only when run_review_receipt.effective_status equals failed and preserved evidence identifies either the delivery failure or a confirmed post-run hard-invariant breach.",
+    "entry_stage_is_align_strategy": "True only when routing is unambiguous and route_card.entry_stage equals align_strategy.",
+    "entry_stage_is_validate_strategy_opportunity": "True only when routing is unambiguous and route_card.entry_stage equals validate_strategy_opportunity.",
+    "entry_stage_is_record_strategy_decision": "True only when routing is unambiguous and route_card.entry_stage equals record_strategy_decision.",
+    "entry_stage_is_map_program": "True only when routing is unambiguous and route_card.entry_stage equals map_program.",
+    "entry_stage_is_align_product": "True only when routing is unambiguous and route_card.entry_stage equals align_product.",
+    "entry_stage_is_validate_product_opportunity": "True only when routing is unambiguous and route_card.entry_stage equals validate_product_opportunity.",
+    "entry_stage_is_review_product_direction": "True only when routing is unambiguous and route_card.entry_stage equals review_product_direction.",
+    "entry_stage_is_specify_product": "True only when routing is unambiguous and route_card.entry_stage equals specify_product.",
+    "entry_stage_is_review_experience": "True only when routing is unambiguous and route_card.entry_stage equals review_experience.",
+    "entry_stage_is_review_engineering": "True only when routing is unambiguous and route_card.entry_stage equals review_engineering.",
+    "entry_stage_is_plan_slices": "True only when routing is unambiguous and route_card.entry_stage equals plan_slices.",
+    "entry_stage_is_select_next_slice": "True only when routing is unambiguous and route_card.entry_stage equals select_next_slice.",
+    "entry_stage_is_assemble_candidate": "True only when routing is unambiguous and route_card.entry_stage equals assemble_candidate.",
+    "entry_stage_is_candidate_verification_fork": "True only when routing is unambiguous and route_card.entry_stage equals candidate_verification_fork.",
+    "entry_stage_is_prepare_release": "True only when routing is unambiguous and route_card.entry_stage equals prepare_release.",
+    "entry_stage_is_ship_change": "True only when routing is unambiguous, full ship authority and preflight evidence are current, and route_card.entry_stage equals ship_change.",
+    "entry_stage_is_resolve_ship_success": "True only when routing is unambiguous, a current successful ship receipt exists, and route_card.entry_stage equals resolve_ship_success.",
+    "entry_stage_is_land_and_deploy_change": "True only when routing is unambiguous, full land-and-deploy authority and successful ship evidence are current, and route_card.entry_stage equals land_and_deploy_change.",
+    "entry_stage_is_record_run_receipt": "True only when routing is unambiguous, the requested completion level is already evidenced, and route_card.entry_stage equals record_run_receipt."
+  },
+  "dynamic_node_templates": [
+    {
+      "id": "prebuild_material_decision",
+      "kind": "decision",
+      "allowed_hosts": [
+        "map_program",
+        "align_strategy",
+        "validate_strategy_opportunity",
+        "align_product",
+        "validate_product_opportunity",
+        "review_product_direction",
+        "review_experience",
+        "review_engineering"
+      ],
+      "executor": {"kind": "human", "id": "codex_picker"},
+      "inputs": ["state.host_stage", "state.material_question", "state.available_options"],
+      "outcome": "Suspend one named pre-build host, record one material choice, then resume that same host.",
+      "completion": {"predicate": "human_decision_recorded", "evidence": ["decision_receipt"]},
+      "invalidated_by": ["decision_changed", "host_scope_changed"],
+      "lifecycle": {
+        "instance_id": "decision_id",
+        "suspend_host": true,
+        "resume_same_host": true,
+        "max_active_per_host": 1
+      }
+    }
+  ],
+  "nodes": [
+    {"id": "intake_run", "kind": "outcome", "lane": "root", "executor": {"kind": "controller", "id": "sop-slop"}, "inputs": ["state.intent", "state.repository_rules", "state.canonical_artifacts"], "outcome": "Classify one coherent outcome, bind its mission anchor, and bind its authority envelope.", "completion": {"predicate": "run_classified", "evidence": ["route_card", "authority_envelope"]}, "invalidated_by": ["intent_changed", "repository_rules_changed"]},
+    {"id": "select_entry_stage", "kind": "outcome", "lane": "root", "executor": {"kind": "deterministic", "id": "earliest_missing_stage_selector"}, "inputs": ["route_card", "state.canonical_evidence"], "outcome": "Select the earliest incomplete stage without rerunning evidenced work.", "completion": {"predicate": "entry_stage_selected", "evidence": ["route_card"]}, "invalidated_by": ["route_changed", "canonical_evidence_changed"]},
+    {"id": "resolve_route_decision", "kind": "decision", "lane": "root", "executor": {"kind": "human", "id": "codex_picker"}, "inputs": ["route_card", "state.unresolved_route_fact"], "outcome": "Record the material choice needed to make routing deterministic.", "completion": {"predicate": "human_decision_recorded", "evidence": ["decision_receipt"]}, "invalidated_by": ["decision_changed"]},
+    {"id": "align_strategy", "kind": "outcome", "lane": "strategy", "executor": {"kind": "skill", "id": "grill-me"}, "inputs": ["state.intent", "state.canonical_artifacts"], "outcome": "Resolve the strategy decision tree one material choice at a time and record the alignment lock.", "completion": {"predicate": "alignment_locked", "evidence": ["artifact_receipt", "alignment_lock_receipt"]}, "invalidated_by": ["intent_changed", "decision_changed"]},
+    {"id": "validate_strategy_opportunity", "kind": "outcome", "lane": "strategy", "executor": {"kind": "skill", "id": "office-hours"}, "inputs": ["artifact_receipt", "state.primary_sources"], "outcome": "Challenge customer problem, demand, wedge, or product opportunity assumptions and record an accepted, revision-required, or fatal disposition.", "delegation": {"mode": "assist", "allowed_roles": ["explorer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "review_disposition_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["strategy_artifact_changed", "source_facts_changed"]},
+    {"id": "record_strategy_decision", "kind": "outcome", "lane": "strategy", "executor": {"kind": "controller", "id": "canonical_decision_adapter"}, "inputs": ["artifact_receipt", "verification_receipt"], "outcome": "Record the settled decision in the workspace's canonical artifact.", "completion": {"predicate": "strategy_decision_recorded", "evidence": ["artifact_receipt"]}, "invalidated_by": ["decision_changed"]},
+    {"id": "map_program", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "wayfinder"}, "inputs": ["state.intent", "state.canonical_artifacts"], "outcome": "Map a T3 program into bounded workflow runs with a clear frontier.", "delegation": {"mode": "assist", "allowed_roles": ["explorer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "current_artifact_recorded", "evidence": ["artifact_receipt"]}, "invalidated_by": ["program_scope_changed"]},
+    {"id": "align_product", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "grill-with-docs"}, "inputs": ["state.intent", "state.canonical_artifacts"], "outcome": "Resolve product language, behavior, boundaries, and hard decisions, then record the alignment lock.", "delegation": {"mode": "assist", "allowed_roles": ["explorer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "alignment_locked", "evidence": ["artifact_receipt", "alignment_lock_receipt"]}, "invalidated_by": ["intent_changed", "decision_changed", "domain_artifact_changed"]},
+    {"id": "validate_product_opportunity", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "office-hours"}, "inputs": ["artifact_receipt", "state.primary_sources"], "outcome": "Validate the product premise, demand, wedge, or customer problem and record an accepted, revision-required, or fatal disposition.", "delegation": {"mode": "assist", "allowed_roles": ["explorer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "review_disposition_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["product_premise_changed", "source_facts_changed"]},
+    {"id": "review_product_direction", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "plan-ceo-review"}, "inputs": ["artifact_receipt", "verification_receipt"], "outcome": "Review product value, economics, scope, security, rollout, and long-term cost and record an accepted, revision-required, or fatal disposition.", "delegation": {"mode": "assist", "allowed_roles": ["reviewer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "review_disposition_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["product_scope_changed"]},
+    {"id": "specify_product", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "to-spec"}, "inputs": ["artifact_receipt", "verification_receipt", "state.decision_receipts"], "outcome": "Synthesize settled intent into the canonical product specification and test seams.", "completion": {"predicate": "current_artifact_recorded", "evidence": ["artifact_receipt"]}, "invalidated_by": ["product_behavior_changed", "decision_changed"]},
+    {"id": "review_experience", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "plan-design-review"}, "inputs": ["artifact_receipt", "state.interaction_contract"], "outcome": "Review user-visible states, decisions, accessibility, and interaction flow and record an accepted, revision-required, or fatal disposition.", "delegation": {"mode": "assist", "allowed_roles": ["reviewer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "review_disposition_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["interaction_changed", "product_behavior_changed"]},
+    {"id": "review_engineering", "kind": "outcome", "lane": "product", "executor": {"kind": "skill", "id": "plan-eng-review"}, "inputs": ["artifact_receipt", "verification_receipt", "state.repository_architecture"], "outcome": "Review architecture, data flow, failure modes, security, tests, and rollout and record an accepted, revision-required, or fatal disposition.", "delegation": {"mode": "assist", "allowed_roles": ["explorer", "reviewer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "review_disposition_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["spec_changed", "interaction_changed", "architecture_changed"]},
+    {"id": "plan_slices", "kind": "outcome", "lane": "delivery", "executor": {"kind": "controller", "id": "canonical_task_bridge"}, "inputs": ["artifact_receipt", "verification_receipt", "state.task_ssot"], "outcome": "Record the minimum vertical slices in the canonical task source of truth.", "completion": {"predicate": "current_artifact_recorded", "evidence": ["artifact_receipt"]}, "invalidated_by": ["spec_changed", "task_plan_changed"]},
+    {"id": "select_next_slice", "kind": "outcome", "lane": "delivery", "executor": {"kind": "deterministic", "id": "next_incomplete_slice_selector"}, "inputs": ["artifact_receipt", "slice_delivery_receipt"], "outcome": "Select the next incomplete approved vertical slice or declare all slices complete using receipts bound to slice ID and plan digest.", "completion": {"predicate": "next_slice_selected", "evidence": ["artifact_receipt"]}, "invalidated_by": ["slice_plan_changed", "slice_status_changed"]},
+    {"id": "deliver_slice", "kind": "outcome", "lane": "delivery", "executor": {"kind": "skill", "id": "implement"}, "inputs": ["artifact_receipt", "state.repository_revision"], "outcome": "Implement and verify one approved vertical slice, then bind its receipt to slice ID, approved plan digest, and delivered commit.", "delegation": {"mode": "execute", "allowed_roles": ["implementation_worker"], "parallelism": "serialized", "write_policy": "isolated_workspace_or_serialized"}, "completion": {"predicate": "slice_delivery_recorded", "evidence": ["slice_delivery_receipt"]}, "invalidated_by": ["slice_spec_changed", "slice_plan_digest_changed", "delivered_commit_rewritten"]},
+    {"id": "assemble_candidate", "kind": "outcome", "lane": "delivery", "executor": {"kind": "controller", "id": "candidate_manifest_builder"}, "inputs": ["artifact_receipt", "slice_delivery_receipt", "state.repository_revision"], "outcome": "Freeze one combined candidate revision, prove every delivered commit is represented, and build its evidence manifest.", "completion": {"predicate": "candidate_assembled", "evidence": ["artifact_receipt"]}, "invalidated_by": ["repository_revision_changed", "slice_plan_digest_changed", "slice_evidence_changed"]},
+    {"id": "candidate_verification_fork", "kind": "fork", "lane": "verification", "executor": {"kind": "controller", "id": "explicit_fork_dispatcher"}, "inputs": ["artifact_receipt", "authority_envelope"], "outcome": "Dispatch independent review, runtime exercise, and required checks against one frozen candidate.", "completion": {"predicate": "fork_manifest_recorded", "evidence": ["fork_manifest"]}, "invalidated_by": ["candidate_revision_changed"], "join": "candidate_evidence_join"},
+    {"id": "review_candidate", "kind": "outcome", "lane": "verification", "executor": {"kind": "skill", "id": "review"}, "inputs": ["fork_manifest", "artifact_receipt"], "outcome": "Perform an independent production-risk review of the frozen candidate.", "delegation": {"mode": "execute", "allowed_roles": ["reviewer"], "parallelism": "explicit_fork_branch", "write_policy": "none"}, "completion": {"predicate": "verification_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["candidate_revision_changed"]},
+    {"id": "exercise_candidate", "kind": "outcome", "lane": "verification", "executor": {"kind": "skill", "id": "qa-or-strongest-runtime-check"}, "inputs": ["fork_manifest", "artifact_receipt"], "outcome": "Exercise the user or service flow against the frozen candidate.", "delegation": {"mode": "execute", "allowed_roles": ["qa_tester"], "parallelism": "explicit_fork_branch", "write_policy": "test_artifacts_only"}, "completion": {"predicate": "verification_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["candidate_revision_changed"]},
+    {"id": "run_required_checks", "kind": "outcome", "lane": "verification", "executor": {"kind": "deterministic", "id": "repository_required_checks"}, "inputs": ["fork_manifest", "artifact_receipt", "state.repository_rules"], "outcome": "Run the repository's required deterministic checks against the frozen candidate.", "delegation": {"mode": "execute", "allowed_roles": ["qa_tester"], "parallelism": "explicit_fork_branch", "write_policy": "test_artifacts_only"}, "completion": {"predicate": "verification_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["candidate_revision_changed", "repository_rules_changed"]},
+    {"id": "candidate_evidence_join", "kind": "join", "lane": "verification", "executor": {"kind": "controller", "id": "all_dispatched_join"}, "inputs": ["fork_manifest", "verification_receipt"], "outcome": "Join all dispatched evidence for the exact candidate revision.", "completion": {"predicate": "all_dispatched_evidence_current", "evidence": ["join_receipt"]}, "invalidated_by": ["candidate_revision_changed", "fork_manifest_changed"], "fork": "candidate_verification_fork", "join_policy": "all_dispatched"},
+    {"id": "resolve_candidate", "kind": "outcome", "lane": "verification", "executor": {"kind": "deterministic", "id": "candidate_result_resolver"}, "inputs": ["join_receipt", "state.requested_completion"], "outcome": "Resolve the candidate as accepted, revision-required, or fatal without hiding failed evidence.", "completion": {"predicate": "candidate_resolution_recorded", "evidence": ["artifact_receipt"]}, "invalidated_by": ["join_receipt_changed"]},
+    {"id": "repair_candidate", "kind": "outcome", "lane": "delivery", "executor": {"kind": "worker", "id": "bounded_repair_worker"}, "inputs": ["artifact_receipt", "join_receipt", "state.revision_budget"], "outcome": "Repair the evidenced candidate root cause within the approved revision budget without rewriting historical slice receipts.", "delegation": {"mode": "execute", "allowed_roles": ["implementation_worker"], "parallelism": "serialized", "write_policy": "isolated_workspace_or_serialized"}, "completion": {"predicate": "candidate_repair_recorded", "evidence": ["artifact_receipt", "verification_receipt"]}, "invalidated_by": ["repair_scope_changed", "repository_revision_changed"]},
+    {"id": "prepare_release", "kind": "outcome", "lane": "release", "executor": {"kind": "deterministic", "id": "compound_release_preflight"}, "inputs": ["artifact_receipt", "join_receipt", "authority_envelope", "route_card"], "outcome": "Verify candidate readiness and require the full authority envelope for every action the selected compound release executors may perform.", "completion": {"predicate": "release_preflight_recorded", "evidence": ["verification_receipt"]}, "invalidated_by": ["candidate_revision_changed", "requested_completion_changed", "authority_envelope_changed"]},
+    {"id": "request_release_authority", "kind": "decision", "lane": "release", "executor": {"kind": "human", "id": "codex_picker"}, "inputs": ["verification_receipt", "authority_envelope", "state.required_compound_actions"], "outcome": "Grant or refuse the complete, scoped action set required before any compound release executor starts.", "completion": {"predicate": "human_decision_recorded", "evidence": ["decision_receipt"]}, "invalidated_by": ["requested_action_changed", "requested_completion_changed", "authority_envelope_changed"]},
+    {"id": "ship_change", "kind": "outcome", "lane": "release", "executor": {"kind": "skill", "id": "ship"}, "inputs": ["artifact_receipt", "verification_receipt", "authority_envelope", "state.repository_revision"], "outcome": "Run the existing ship skill as one atomic executor through its verified change request, only after commit, push, and change-request authority are complete.", "completion": {"predicate": "compound_release_recorded", "evidence": ["external_action_receipt", "verification_receipt", "authority_envelope"]}, "invalidated_by": ["repository_revision_changed", "authority_envelope_changed"]},
+    {"id": "resolve_ship_success", "kind": "outcome", "lane": "release", "executor": {"kind": "deterministic", "id": "release_target_resolver"}, "inputs": ["route_card", "external_action_receipt"], "outcome": "After a successful ship run, stop at the verified change request or continue to land-and-deploy according to the requested completion level.", "completion": {"predicate": "release_target_classified", "evidence": ["route_card", "external_action_receipt"]}, "invalidated_by": ["requested_completion_changed", "ship_receipt_changed"]},
+    {"id": "land_and_deploy_change", "kind": "outcome", "lane": "release", "executor": {"kind": "skill", "id": "land-and-deploy"}, "inputs": ["external_action_receipt", "verification_receipt", "authority_envelope", "state.deploy_path"], "outcome": "Run the existing land-and-deploy skill as one atomic executor through merge, deployment, verification, and its bounded recovery behavior.", "completion": {"predicate": "compound_release_recorded", "evidence": ["external_action_receipt", "verification_receipt", "authority_envelope"]}, "invalidated_by": ["ship_receipt_changed", "deploy_path_changed", "authority_envelope_changed"]},
+    {"id": "record_run_receipt", "kind": "outcome", "lane": "close", "executor": {"kind": "controller", "id": "run_receipt_recorder"}, "inputs": ["state.run_history", "state.final_status", "authority_envelope"], "outcome": "Record immutable decisions, transitions, evidence, authority use, and final status.", "completion": {"predicate": "run_receipt_recorded", "evidence": ["run_receipt"]}, "invalidated_by": []},
+    {"id": "review_run", "kind": "outcome", "lane": "learning", "executor": {"kind": "controller", "id": "ordered_run_reviewer"}, "inputs": ["run_receipt", "state.comparable_run_receipts"], "outcome": "Review the run and optionally propose an improvement; on review failure emit a degraded receipt without changing the delivery status or active graph.", "delegation": {"mode": "assist", "allowed_roles": ["reviewer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "run_review_recorded", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
+    {"id": "run_completed", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_review_receipt"], "outcome": "Close the run at the requested completion level.", "completion": {"predicate": "run_closed", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
+    {"id": "run_blocked", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_review_receipt"], "outcome": "Close the current attempt with an exact unresolved gate and unblocker.", "completion": {"predicate": "run_closed", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
+    {"id": "run_failed", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_review_receipt"], "outcome": "Close the run after a non-recoverable failure while preserving all evidence.", "completion": {"predicate": "run_closed", "evidence": ["run_review_receipt"]}, "invalidated_by": []}
+  ],
+  "edges": [
+    {"id": "intake_to_entry", "from": "intake_run", "to": "select_entry_stage", "guard": "stage_completed", "type": "advance"},
+    {"id": "entry_to_route_decision", "from": "select_entry_stage", "to": "resolve_route_decision", "guard": "entry_stage_requires_decision", "type": "decision"},
+    {"id": "route_decision_to_entry", "from": "resolve_route_decision", "to": "select_entry_stage", "guard": "decision_recorded", "type": "advance"},
+    {"id": "entry_to_align_strategy", "from": "select_entry_stage", "to": "align_strategy", "guard": "entry_stage_is_align_strategy", "type": "advance"},
+    {"id": "entry_to_validate_strategy", "from": "select_entry_stage", "to": "validate_strategy_opportunity", "guard": "entry_stage_is_validate_strategy_opportunity", "type": "advance"},
+    {"id": "entry_to_record_strategy", "from": "select_entry_stage", "to": "record_strategy_decision", "guard": "entry_stage_is_record_strategy_decision", "type": "advance"},
+    {"id": "entry_to_map_program", "from": "select_entry_stage", "to": "map_program", "guard": "entry_stage_is_map_program", "type": "advance"},
+    {"id": "entry_to_align_product", "from": "select_entry_stage", "to": "align_product", "guard": "entry_stage_is_align_product", "type": "advance"},
+    {"id": "entry_to_validate_product", "from": "select_entry_stage", "to": "validate_product_opportunity", "guard": "entry_stage_is_validate_product_opportunity", "type": "advance"},
+    {"id": "entry_to_review_product", "from": "select_entry_stage", "to": "review_product_direction", "guard": "entry_stage_is_review_product_direction", "type": "advance"},
+    {"id": "entry_to_specify", "from": "select_entry_stage", "to": "specify_product", "guard": "entry_stage_is_specify_product", "type": "advance"},
+    {"id": "entry_to_review_experience", "from": "select_entry_stage", "to": "review_experience", "guard": "entry_stage_is_review_experience", "type": "advance"},
+    {"id": "entry_to_review_engineering", "from": "select_entry_stage", "to": "review_engineering", "guard": "entry_stage_is_review_engineering", "type": "advance"},
+    {"id": "entry_to_plan_slices", "from": "select_entry_stage", "to": "plan_slices", "guard": "entry_stage_is_plan_slices", "type": "advance"},
+    {"id": "entry_to_select_slice", "from": "select_entry_stage", "to": "select_next_slice", "guard": "entry_stage_is_select_next_slice", "type": "advance"},
+    {"id": "entry_to_assemble", "from": "select_entry_stage", "to": "assemble_candidate", "guard": "entry_stage_is_assemble_candidate", "type": "advance"},
+    {"id": "entry_to_candidate_fork", "from": "select_entry_stage", "to": "candidate_verification_fork", "guard": "entry_stage_is_candidate_verification_fork", "type": "advance"},
+    {"id": "entry_to_prepare_release", "from": "select_entry_stage", "to": "prepare_release", "guard": "entry_stage_is_prepare_release", "type": "advance"},
+    {"id": "entry_to_ship", "from": "select_entry_stage", "to": "ship_change", "guard": "entry_stage_is_ship_change", "type": "advance"},
+    {"id": "entry_to_resolve_ship", "from": "select_entry_stage", "to": "resolve_ship_success", "guard": "entry_stage_is_resolve_ship_success", "type": "advance"},
+    {"id": "entry_to_land_and_deploy", "from": "select_entry_stage", "to": "land_and_deploy_change", "guard": "entry_stage_is_land_and_deploy_change", "type": "advance"},
+    {"id": "entry_to_receipt", "from": "select_entry_stage", "to": "record_run_receipt", "guard": "entry_stage_is_record_run_receipt", "type": "complete", "sets_status": "completed"},
+    {"id": "align_strategy_to_validate", "from": "align_strategy", "to": "validate_strategy_opportunity", "guard": "strategy_opportunity_review_required", "type": "advance"},
+    {"id": "align_strategy_to_record", "from": "align_strategy", "to": "record_strategy_decision", "guard": "strategy_opportunity_review_not_required", "type": "advance"},
+    {"id": "validate_strategy_to_record", "from": "validate_strategy_opportunity", "to": "record_strategy_decision", "guard": "review_accepted", "type": "advance"},
+    {"id": "validate_strategy_to_revision", "from": "validate_strategy_opportunity", "to": "align_strategy", "guard": "review_revision_required", "type": "revision", "budget": "strategy_review_revision"},
+    {"id": "validate_strategy_fatal_to_receipt", "from": "validate_strategy_opportunity", "to": "record_run_receipt", "guard": "review_fatal", "type": "complete", "sets_status": "failed"},
+    {"id": "strategy_to_product", "from": "record_strategy_decision", "to": "align_product", "guard": "strategy_creates_product_change", "type": "advance"},
+    {"id": "strategy_to_receipt", "from": "record_strategy_decision", "to": "record_run_receipt", "guard": "strategy_run_complete", "type": "complete", "sets_status": "completed"},
+    {"id": "program_to_alignment", "from": "map_program", "to": "align_product", "guard": "stage_completed", "type": "advance"},
+    {"id": "alignment_to_opportunity", "from": "align_product", "to": "validate_product_opportunity", "guard": "product_opportunity_review_required", "type": "advance"},
+    {"id": "alignment_to_product_review", "from": "align_product", "to": "review_product_direction", "guard": "product_opportunity_review_not_required", "type": "advance"},
+    {"id": "opportunity_to_product_review", "from": "validate_product_opportunity", "to": "review_product_direction", "guard": "review_accepted", "type": "advance"},
+    {"id": "opportunity_to_revision", "from": "validate_product_opportunity", "to": "align_product", "guard": "review_revision_required", "type": "revision", "budget": "product_opportunity_revision"},
+    {"id": "opportunity_fatal_to_receipt", "from": "validate_product_opportunity", "to": "record_run_receipt", "guard": "review_fatal", "type": "complete", "sets_status": "failed"},
+    {"id": "product_review_to_receipt", "from": "review_product_direction", "to": "record_run_receipt", "guard": "product_review_finishes_run", "type": "complete", "sets_status": "completed"},
+    {"id": "product_review_to_spec", "from": "review_product_direction", "to": "specify_product", "guard": "product_spec_required", "type": "advance"},
+    {"id": "product_review_to_revision", "from": "review_product_direction", "to": "align_product", "guard": "review_revision_required", "type": "revision", "budget": "product_direction_revision"},
+    {"id": "product_review_fatal_to_receipt", "from": "review_product_direction", "to": "record_run_receipt", "guard": "review_fatal", "type": "complete", "sets_status": "failed"},
+    {"id": "spec_to_receipt", "from": "specify_product", "to": "record_run_receipt", "guard": "spec_finishes_run", "type": "complete", "sets_status": "completed"},
+    {"id": "spec_to_design", "from": "specify_product", "to": "review_experience", "guard": "experience_review_required", "type": "advance"},
+    {"id": "spec_to_engineering", "from": "specify_product", "to": "review_engineering", "guard": "engineering_review_required_next", "type": "advance"},
+    {"id": "design_to_receipt", "from": "review_experience", "to": "record_run_receipt", "guard": "experience_review_finishes_run", "type": "complete", "sets_status": "completed"},
+    {"id": "design_to_engineering", "from": "review_experience", "to": "review_engineering", "guard": "engineering_review_follows", "type": "advance"},
+    {"id": "design_to_revision", "from": "review_experience", "to": "specify_product", "guard": "review_revision_required", "type": "revision", "budget": "experience_review_revision"},
+    {"id": "design_fatal_to_receipt", "from": "review_experience", "to": "record_run_receipt", "guard": "review_fatal", "type": "complete", "sets_status": "failed"},
+    {"id": "engineering_to_receipt", "from": "review_engineering", "to": "record_run_receipt", "guard": "engineering_review_finishes_run", "type": "complete", "sets_status": "completed"},
+    {"id": "engineering_to_slices", "from": "review_engineering", "to": "plan_slices", "guard": "slicing_required", "type": "advance"},
+    {"id": "engineering_to_revision", "from": "review_engineering", "to": "specify_product", "guard": "review_revision_required", "type": "revision", "budget": "engineering_review_revision"},
+    {"id": "engineering_fatal_to_receipt", "from": "review_engineering", "to": "record_run_receipt", "guard": "review_fatal", "type": "complete", "sets_status": "failed"},
+    {"id": "slices_to_selector", "from": "plan_slices", "to": "select_next_slice", "guard": "stage_completed", "type": "advance"},
+    {"id": "selector_to_delivery", "from": "select_next_slice", "to": "deliver_slice", "guard": "unfinished_slice_exists", "type": "advance"},
+    {"id": "selector_to_assemble", "from": "select_next_slice", "to": "assemble_candidate", "guard": "all_slices_complete", "type": "advance"},
+    {"id": "delivery_to_selector", "from": "deliver_slice", "to": "select_next_slice", "guard": "stage_completed", "type": "iteration", "budget": "planned_slices"},
+    {"id": "assemble_to_fork", "from": "assemble_candidate", "to": "candidate_verification_fork", "guard": "stage_completed", "type": "advance"},
+    {"id": "fork_to_review", "from": "candidate_verification_fork", "to": "review_candidate", "guard": "stage_completed", "type": "fork"},
+    {"id": "fork_to_exercise", "from": "candidate_verification_fork", "to": "exercise_candidate", "guard": "stage_completed", "type": "fork"},
+    {"id": "fork_to_checks", "from": "candidate_verification_fork", "to": "run_required_checks", "guard": "stage_completed", "type": "fork"},
+    {"id": "review_to_join", "from": "review_candidate", "to": "candidate_evidence_join", "guard": "stage_completed", "type": "join"},
+    {"id": "exercise_to_join", "from": "exercise_candidate", "to": "candidate_evidence_join", "guard": "stage_completed", "type": "join"},
+    {"id": "checks_to_join", "from": "run_required_checks", "to": "candidate_evidence_join", "guard": "stage_completed", "type": "join"},
+    {"id": "join_to_resolution", "from": "candidate_evidence_join", "to": "resolve_candidate", "guard": "stage_completed", "type": "advance"},
+    {"id": "candidate_to_repair", "from": "resolve_candidate", "to": "repair_candidate", "guard": "candidate_revision_required", "type": "revision", "budget": "candidate_revision"},
+    {"id": "candidate_to_receipt", "from": "resolve_candidate", "to": "record_run_receipt", "guard": "candidate_reaches_requested_level", "type": "complete", "sets_status": "completed"},
+    {"id": "candidate_to_release", "from": "resolve_candidate", "to": "prepare_release", "guard": "candidate_release_requested", "type": "advance"},
+    {"id": "candidate_fatal_to_receipt", "from": "resolve_candidate", "to": "record_run_receipt", "guard": "candidate_fatal", "type": "complete", "sets_status": "failed"},
+    {"id": "repair_to_assemble", "from": "repair_candidate", "to": "assemble_candidate", "guard": "stage_completed", "type": "revision", "budget": "candidate_revision"},
+    {"id": "preflight_to_authority", "from": "prepare_release", "to": "request_release_authority", "guard": "release_authority_needed", "type": "decision"},
+    {"id": "preflight_to_ship", "from": "prepare_release", "to": "ship_change", "guard": "release_execution_authorized", "type": "advance"},
+    {"id": "preflight_failure_to_receipt", "from": "prepare_release", "to": "record_run_receipt", "guard": "release_preflight_failed", "type": "complete", "sets_status": "blocked"},
+    {"id": "authority_to_preflight", "from": "request_release_authority", "to": "prepare_release", "guard": "authority_granted", "type": "advance"},
+    {"id": "authority_denied_to_receipt", "from": "request_release_authority", "to": "record_run_receipt", "guard": "authority_denied", "type": "complete", "sets_status": "blocked"},
+    {"id": "ship_success_to_resolver", "from": "ship_change", "to": "resolve_ship_success", "guard": "external_action_succeeded", "type": "advance"},
+    {"id": "ship_blocked_to_receipt", "from": "ship_change", "to": "record_run_receipt", "guard": "external_action_blocked", "type": "complete", "sets_status": "blocked"},
+    {"id": "ship_failed_to_receipt", "from": "ship_change", "to": "record_run_receipt", "guard": "external_action_failed", "type": "complete", "sets_status": "failed"},
+    {"id": "ship_target_to_receipt", "from": "resolve_ship_success", "to": "record_run_receipt", "guard": "ship_reaches_requested_level", "type": "complete", "sets_status": "completed"},
+    {"id": "ship_target_to_land_and_deploy", "from": "resolve_ship_success", "to": "land_and_deploy_change", "guard": "ship_requires_land_and_deploy", "type": "advance"},
+    {"id": "land_and_deploy_success_to_receipt", "from": "land_and_deploy_change", "to": "record_run_receipt", "guard": "external_action_succeeded", "type": "complete", "sets_status": "completed"},
+    {"id": "land_and_deploy_blocked_to_receipt", "from": "land_and_deploy_change", "to": "record_run_receipt", "guard": "external_action_blocked", "type": "complete", "sets_status": "blocked"},
+    {"id": "land_and_deploy_failed_to_receipt", "from": "land_and_deploy_change", "to": "record_run_receipt", "guard": "external_action_failed", "type": "complete", "sets_status": "failed"},
+    {"id": "receipt_to_review", "from": "record_run_receipt", "to": "review_run", "guard": "stage_completed", "type": "advance"},
+    {"id": "review_to_completed", "from": "review_run", "to": "run_completed", "guard": "run_status_completed", "type": "complete"},
+    {"id": "review_to_blocked", "from": "review_run", "to": "run_blocked", "guard": "run_status_blocked", "type": "complete"},
+    {"id": "review_to_failed", "from": "review_run", "to": "run_failed", "guard": "run_status_failed", "type": "complete"}
+  ],
+  "outcome_tables": [
+    {"node": "select_entry_stage", "partition": "entry_stage", "selection": "exactly_one", "evidence": ["route_card"], "domain": ["decision_required", "align_strategy", "validate_strategy_opportunity", "record_strategy_decision", "map_program", "align_product", "validate_product_opportunity", "review_product_direction", "specify_product", "review_experience", "review_engineering", "plan_slices", "select_next_slice", "assemble_candidate", "candidate_verification_fork", "prepare_release", "ship_change", "resolve_ship_success", "land_and_deploy_change", "record_run_receipt"], "cases": [
+      {"value": "decision_required", "edge": "entry_to_route_decision", "guard": "entry_stage_requires_decision"},
+      {"value": "align_strategy", "edge": "entry_to_align_strategy", "guard": "entry_stage_is_align_strategy"},
+      {"value": "validate_strategy_opportunity", "edge": "entry_to_validate_strategy", "guard": "entry_stage_is_validate_strategy_opportunity"},
+      {"value": "record_strategy_decision", "edge": "entry_to_record_strategy", "guard": "entry_stage_is_record_strategy_decision"},
+      {"value": "map_program", "edge": "entry_to_map_program", "guard": "entry_stage_is_map_program"},
+      {"value": "align_product", "edge": "entry_to_align_product", "guard": "entry_stage_is_align_product"},
+      {"value": "validate_product_opportunity", "edge": "entry_to_validate_product", "guard": "entry_stage_is_validate_product_opportunity"},
+      {"value": "review_product_direction", "edge": "entry_to_review_product", "guard": "entry_stage_is_review_product_direction"},
+      {"value": "specify_product", "edge": "entry_to_specify", "guard": "entry_stage_is_specify_product"},
+      {"value": "review_experience", "edge": "entry_to_review_experience", "guard": "entry_stage_is_review_experience"},
+      {"value": "review_engineering", "edge": "entry_to_review_engineering", "guard": "entry_stage_is_review_engineering"},
+      {"value": "plan_slices", "edge": "entry_to_plan_slices", "guard": "entry_stage_is_plan_slices"},
+      {"value": "select_next_slice", "edge": "entry_to_select_slice", "guard": "entry_stage_is_select_next_slice"},
+      {"value": "assemble_candidate", "edge": "entry_to_assemble", "guard": "entry_stage_is_assemble_candidate"},
+      {"value": "candidate_verification_fork", "edge": "entry_to_candidate_fork", "guard": "entry_stage_is_candidate_verification_fork"},
+      {"value": "prepare_release", "edge": "entry_to_prepare_release", "guard": "entry_stage_is_prepare_release"},
+      {"value": "ship_change", "edge": "entry_to_ship", "guard": "entry_stage_is_ship_change"},
+      {"value": "resolve_ship_success", "edge": "entry_to_resolve_ship", "guard": "entry_stage_is_resolve_ship_success"},
+      {"value": "land_and_deploy_change", "edge": "entry_to_land_and_deploy", "guard": "entry_stage_is_land_and_deploy_change"},
+      {"value": "record_run_receipt", "edge": "entry_to_receipt", "guard": "entry_stage_is_record_run_receipt"}
+    ]},
+    {"node": "align_strategy", "partition": "strategy_opportunity_route", "selection": "exactly_one", "evidence": ["artifact_receipt"], "domain": ["review_required", "review_not_required"], "cases": [
+      {"value": "review_required", "edge": "align_strategy_to_validate", "guard": "strategy_opportunity_review_required"},
+      {"value": "review_not_required", "edge": "align_strategy_to_record", "guard": "strategy_opportunity_review_not_required"}
+    ]},
+    {"node": "validate_strategy_opportunity", "partition": "review_disposition", "selection": "exactly_one", "evidence": ["verification_receipt"], "domain": ["accepted", "revision_required", "fatal"], "cases": [
+      {"value": "accepted", "edge": "validate_strategy_to_record", "guard": "review_accepted"},
+      {"value": "revision_required", "edge": "validate_strategy_to_revision", "guard": "review_revision_required"},
+      {"value": "fatal", "edge": "validate_strategy_fatal_to_receipt", "guard": "review_fatal"}
+    ]},
+    {"node": "record_strategy_decision", "partition": "strategy_completion_route", "selection": "exactly_one", "evidence": ["artifact_receipt", "route_card"], "domain": ["product_change", "strategy_complete"], "cases": [
+      {"value": "product_change", "edge": "strategy_to_product", "guard": "strategy_creates_product_change"},
+      {"value": "strategy_complete", "edge": "strategy_to_receipt", "guard": "strategy_run_complete"}
+    ]},
+    {"node": "align_product", "partition": "product_opportunity_route", "selection": "exactly_one", "evidence": ["artifact_receipt"], "domain": ["review_required", "review_not_required"], "cases": [
+      {"value": "review_required", "edge": "alignment_to_opportunity", "guard": "product_opportunity_review_required"},
+      {"value": "review_not_required", "edge": "alignment_to_product_review", "guard": "product_opportunity_review_not_required"}
+    ]},
+    {"node": "validate_product_opportunity", "partition": "review_disposition", "selection": "exactly_one", "evidence": ["verification_receipt"], "domain": ["accepted", "revision_required", "fatal"], "cases": [
+      {"value": "accepted", "edge": "opportunity_to_product_review", "guard": "review_accepted"},
+      {"value": "revision_required", "edge": "opportunity_to_revision", "guard": "review_revision_required"},
+      {"value": "fatal", "edge": "opportunity_fatal_to_receipt", "guard": "review_fatal"}
+    ]},
+    {"node": "review_product_direction", "partition": "product_review_route", "selection": "exactly_one", "evidence": ["verification_receipt", "route_card"], "domain": ["accepted_complete", "accepted_spec", "revision_required", "fatal"], "cases": [
+      {"value": "accepted_complete", "edge": "product_review_to_receipt", "guard": "product_review_finishes_run"},
+      {"value": "accepted_spec", "edge": "product_review_to_spec", "guard": "product_spec_required"},
+      {"value": "revision_required", "edge": "product_review_to_revision", "guard": "review_revision_required"},
+      {"value": "fatal", "edge": "product_review_fatal_to_receipt", "guard": "review_fatal"}
+    ]},
+    {"node": "specify_product", "partition": "post_spec_route", "selection": "exactly_one", "evidence": ["artifact_receipt", "route_card"], "domain": ["spec_complete", "experience_review", "engineering_review"], "cases": [
+      {"value": "spec_complete", "edge": "spec_to_receipt", "guard": "spec_finishes_run"},
+      {"value": "experience_review", "edge": "spec_to_design", "guard": "experience_review_required"},
+      {"value": "engineering_review", "edge": "spec_to_engineering", "guard": "engineering_review_required_next"}
+    ]},
+    {"node": "review_experience", "partition": "experience_review_route", "selection": "exactly_one", "evidence": ["verification_receipt", "route_card"], "domain": ["accepted_complete", "accepted_engineering", "revision_required", "fatal"], "cases": [
+      {"value": "accepted_complete", "edge": "design_to_receipt", "guard": "experience_review_finishes_run"},
+      {"value": "accepted_engineering", "edge": "design_to_engineering", "guard": "engineering_review_follows"},
+      {"value": "revision_required", "edge": "design_to_revision", "guard": "review_revision_required"},
+      {"value": "fatal", "edge": "design_fatal_to_receipt", "guard": "review_fatal"}
+    ]},
+    {"node": "review_engineering", "partition": "engineering_review_route", "selection": "exactly_one", "evidence": ["verification_receipt", "route_card"], "domain": ["accepted_complete", "accepted_slices", "revision_required", "fatal"], "cases": [
+      {"value": "accepted_complete", "edge": "engineering_to_receipt", "guard": "engineering_review_finishes_run"},
+      {"value": "accepted_slices", "edge": "engineering_to_slices", "guard": "slicing_required"},
+      {"value": "revision_required", "edge": "engineering_to_revision", "guard": "review_revision_required"},
+      {"value": "fatal", "edge": "engineering_fatal_to_receipt", "guard": "review_fatal"}
+    ]},
+    {"node": "select_next_slice", "partition": "slice_selection", "selection": "exactly_one", "evidence": ["artifact_receipt", "slice_delivery_receipt"], "domain": ["unfinished_slice", "all_slices_complete"], "cases": [
+      {"value": "unfinished_slice", "edge": "selector_to_delivery", "guard": "unfinished_slice_exists"},
+      {"value": "all_slices_complete", "edge": "selector_to_assemble", "guard": "all_slices_complete"}
+    ]},
+    {"node": "resolve_candidate", "partition": "candidate_disposition", "selection": "exactly_one", "evidence": ["join_receipt", "route_card"], "domain": ["revision_required", "accepted_complete", "accepted_release", "fatal"], "cases": [
+      {"value": "revision_required", "edge": "candidate_to_repair", "guard": "candidate_revision_required"},
+      {"value": "accepted_complete", "edge": "candidate_to_receipt", "guard": "candidate_reaches_requested_level"},
+      {"value": "accepted_release", "edge": "candidate_to_release", "guard": "candidate_release_requested"},
+      {"value": "fatal", "edge": "candidate_fatal_to_receipt", "guard": "candidate_fatal"}
+    ]},
+    {"node": "prepare_release", "partition": "release_preflight_result", "selection": "exactly_one", "evidence": ["verification_receipt", "authority_envelope"], "domain": ["authority_needed", "authorized", "failed"], "cases": [
+      {"value": "authority_needed", "edge": "preflight_to_authority", "guard": "release_authority_needed"},
+      {"value": "authorized", "edge": "preflight_to_ship", "guard": "release_execution_authorized"},
+      {"value": "failed", "edge": "preflight_failure_to_receipt", "guard": "release_preflight_failed"}
+    ]},
+    {"node": "request_release_authority", "partition": "authority_decision", "selection": "exactly_one_after_answer", "evidence": ["decision_receipt"], "domain": ["granted", "denied"], "cases": [
+      {"value": "granted", "edge": "authority_to_preflight", "guard": "authority_granted"},
+      {"value": "denied", "edge": "authority_denied_to_receipt", "guard": "authority_denied"}
+    ]},
+    {"node": "ship_change", "partition": "compound_action_result", "selection": "exactly_one", "evidence": ["external_action_receipt", "verification_receipt"], "domain": ["succeeded", "blocked", "failed"], "cases": [
+      {"value": "succeeded", "edge": "ship_success_to_resolver", "guard": "external_action_succeeded"},
+      {"value": "blocked", "edge": "ship_blocked_to_receipt", "guard": "external_action_blocked"},
+      {"value": "failed", "edge": "ship_failed_to_receipt", "guard": "external_action_failed"}
+    ]},
+    {"node": "resolve_ship_success", "partition": "release_target", "selection": "exactly_one", "evidence": ["route_card", "external_action_receipt"], "domain": ["change_request_complete", "land_and_deploy_required"], "cases": [
+      {"value": "change_request_complete", "edge": "ship_target_to_receipt", "guard": "ship_reaches_requested_level"},
+      {"value": "land_and_deploy_required", "edge": "ship_target_to_land_and_deploy", "guard": "ship_requires_land_and_deploy"}
+    ]},
+    {"node": "land_and_deploy_change", "partition": "compound_action_result", "selection": "exactly_one", "evidence": ["external_action_receipt", "verification_receipt"], "domain": ["succeeded", "blocked", "failed"], "cases": [
+      {"value": "succeeded", "edge": "land_and_deploy_success_to_receipt", "guard": "external_action_succeeded"},
+      {"value": "blocked", "edge": "land_and_deploy_blocked_to_receipt", "guard": "external_action_blocked"},
+      {"value": "failed", "edge": "land_and_deploy_failed_to_receipt", "guard": "external_action_failed"}
+    ]},
+    {"node": "review_run", "partition": "effective_terminal_status", "selection": "exactly_one", "evidence": ["run_review_receipt"], "domain": ["completed", "blocked", "failed"], "cases": [
+      {"value": "completed", "edge": "review_to_completed", "guard": "run_status_completed"},
+      {"value": "blocked", "edge": "review_to_blocked", "guard": "run_status_blocked"},
+      {"value": "failed", "edge": "review_to_failed", "guard": "run_status_failed"}
+    ]}
+  ],
+  "trace_scenarios": [
+    {"id": "material_route_decision", "start": "select_entry_stage", "steps": [
+      {"node": "select_entry_stage", "outcome": "decision_required", "edge": "entry_to_route_decision"},
+      {"node": "resolve_route_decision", "edge": "route_decision_to_entry"},
+      {"node": "select_entry_stage", "outcome": "align_product", "edge": "entry_to_align_product"}
+    ], "ends_at": "align_product"},
+    {"id": "failed_candidate_repairs", "start": "resolve_candidate", "steps": [
+      {"node": "resolve_candidate", "outcome": "revision_required", "edge": "candidate_to_repair"},
+      {"node": "repair_candidate", "edge": "repair_to_assemble"}
+    ], "ends_at": "assemble_candidate"},
+    {"id": "missing_release_authority_blocks_before_action", "start": "prepare_release", "steps": [
+      {"node": "prepare_release", "outcome": "authority_needed", "edge": "preflight_to_authority"},
+      {"node": "request_release_authority", "outcome": "denied", "edge": "authority_denied_to_receipt"},
+      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "review_run", "outcome": "blocked", "edge": "review_to_blocked"}
+    ], "ends_at": "run_blocked"},
+    {"id": "compound_production_release", "start": "prepare_release", "steps": [
+      {"node": "prepare_release", "outcome": "authorized", "edge": "preflight_to_ship"},
+      {"node": "ship_change", "outcome": "succeeded", "edge": "ship_success_to_resolver"},
+      {"node": "resolve_ship_success", "outcome": "land_and_deploy_required", "edge": "ship_target_to_land_and_deploy"},
+      {"node": "land_and_deploy_change", "outcome": "succeeded", "edge": "land_and_deploy_success_to_receipt"},
+      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "review_run", "outcome": "completed", "edge": "review_to_completed"}
+    ], "ends_at": "run_completed"},
+    {"id": "confirmed_late_invariant_breach_fails", "start": "record_run_receipt", "steps": [
+      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "review_run", "outcome": "failed", "edge": "review_to_failed"}
+    ], "ends_at": "run_failed"}
+  ],
+  "policy_trace_scenarios": [
+    {
+      "id": "side_quest_preserves_parent",
+      "events": ["primary_mission_active", "unrelated_request_arrives", "linked_task_creation_authorized", "side_quest_task_created", "parent_resumes"],
+      "assertions": ["classifies_side_quest", "creates_linked_codex_task", "parent_route_unchanged", "parent_resumes_same_node", "no_authority_inheritance"]
+    },
+    {
+      "id": "side_quest_without_creation_authority",
+      "events": ["primary_mission_active", "unrelated_request_arrives", "linked_task_creation_not_authorized", "side_quest_prompt_retained", "parent_resumes"],
+      "assertions": ["classifies_side_quest", "retains_ready_to_send_prompt", "parent_route_unchanged", "parent_resumes_same_node", "no_external_action"]
+    },
+    {
+      "id": "aligned_release_autonomy",
+      "events": ["alignment_lock_recorded", "nested_executor_returns", "version_required", "release_preflight_green", "production_verified"],
+      "assertions": ["nested_final_returns_to_controller", "controller_selects_version", "no_release_reconfirmation", "production_verified_before_close", "run_review_before_terminal"]
+    }
+  ]
+}

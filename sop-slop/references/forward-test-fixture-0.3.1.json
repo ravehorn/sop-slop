@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "forward_test": {
+    "run_id": "sop-slop-public-forward-0.3.1",
+    "graph_version": "0.3.1",
+    "mode": "evolution",
+    "lane": "review-only",
+    "tier": "not_applicable",
+    "requested_completion": "review",
+    "delivery_status": "completed",
+    "effective_status": "completed",
+    "selected_stages": [
+      "intake_run",
+      "select_entry_stage",
+      "record_run_receipt",
+      "review_run",
+      "run_completed"
+    ],
+    "planned_slice_ids": [],
+    "observed_transitions": [
+      {"from": "intake_run", "to": "select_entry_stage"},
+      {"from": "select_entry_stage", "to": "record_run_receipt"},
+      {"from": "record_run_receipt", "to": "review_run"},
+      {"from": "review_run", "to": "run_completed"}
+    ],
+    "delegations": [],
+    "evidence": {
+      "route_card": [
+        {
+          "graph_version": "0.3.1",
+          "lane": "review-only",
+          "tier": "not_applicable",
+          "primary_outcome": "Review an already evidenced product decision without changing it.",
+          "observable_proof": "A run receipt and run review close at the requested review level.",
+          "non_goals": ["implementation", "release", "external publication"],
+          "requested_completion": "review",
+          "current_node": "record_run_receipt",
+          "authority_source": "synthetic-fixture:no-external-authority",
+          "entry_stage": "record_run_receipt",
+          "selected_stages": ["intake_run", "select_entry_stage", "record_run_receipt", "review_run", "run_completed"],
+          "skipped_stages": ["align_product", "specify_product", "review_engineering", "deliver_slice", "ship_change", "land_and_deploy_change"],
+          "skip_reasons": {"all": "The synthetic fixture starts from an already evidenced review result and exercises closure only."}
+        }
+      ],
+      "authority_envelope": [
+        {
+          "allowed_actions": ["read local fixture", "run local validators"],
+          "forbidden_actions": ["write product state", "publish", "release"],
+          "resources": ["sop-slop/references/forward-test-fixture-0.3.1.json"],
+          "environments": ["local test"],
+          "limits": {"external_actions": 0},
+          "expires_at": "2099-01-01T00:00:00Z"
+        }
+      ],
+      "run_receipt": [
+        {
+          "run_id": "sop-slop-public-forward-0.3.1",
+          "graph_version": "0.3.1",
+          "status": "completed",
+          "decisions": [],
+          "transitions": ["intake_run->select_entry_stage", "select_entry_stage->record_run_receipt", "record_run_receipt->review_run"],
+          "evidence_refs": ["route_card:synthetic", "authority_envelope:synthetic"],
+          "authority_use": [],
+          "started_at": "2026-01-01T00:00:00Z",
+          "closed_at": "2026-01-01T00:00:01Z"
+        }
+      ],
+      "run_review_receipt": [
+        {
+          "run_id": "sop-slop-public-forward-0.3.1",
+          "graph_version": "0.3.1",
+          "review_status": "completed",
+          "delivery_status": "completed",
+          "effective_status": "completed",
+          "objective_results": {"hard_safety_and_truth": "pass", "requested_outcome_correctness": "pass"},
+          "root_cause_class": "no_issue",
+          "review_error": null,
+          "proposal_ref": null,
+          "reviewer": "synthetic-fixture",
+          "created_at": "2026-01-01T00:00:02Z"
+        }
+      ]
+    },
+    "expected_diagnostics": []
+  }
+}

@@ -4,7 +4,7 @@
 
 At the start, state only:
 
-1. lane and tier
+1. run ID, lane, and tier
 2. canonical artifact or source of truth
 3. selected stages and deliberate skips
 4. current stage
@@ -84,6 +84,16 @@ Before spawning a specialist, record:
 7. stop condition
 
 On return, retain result and evidence references plus the controller's validation. The controller decides whether the returned evidence satisfies the node's actual completion predicate; the specialist never selects the next edge.
+
+## Deliberation call and return
+
+At invocation, retain:
+
+1. invoking run, stable mission-anchor digest, node, exact question, reason, profile ID/version, and frozen-input-reference digest
+2. named roster and lenses, each pinned to `gpt-5.6-luna` at `max`
+3. acceptance criteria, hard invariants, authority, two-round budget, expected evidence, and exact return contract
+
+During discussion, retain independent observations, lossless broadcasts, named questions and responses, required contribution fields, objections, and position changes. At return, show the joint proposal, each specialist's consent status, retained dissent, controller validation, invalidated artifacts, and exact caller. Never summarize isolated reports as a council result or use majority vote.
 
 ## Completion report
 

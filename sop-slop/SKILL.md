@@ -1,6 +1,6 @@
 ---
 name: sop-slop
-description: Carry substantial product or domain changes from alignment through verified production while keeping the primary mission focused, turning annotation batches into deduplicated problem queues, forking side quests into separate Codex tasks, and running only the necessary product, engineering, design, QA, ship, and deploy gates. Also use for bounded product reviews or strategy decisions when explicitly requested. Do not use for isolated bugs or small, already-clear code changes.
+description: Carry substantial product or domain changes from alignment through verified production while keeping the primary mission focused, turning annotation batches into deduplicated problem queues, optionally running bounded peer deliberation for unresolved material judgment, forking side quests into separate Codex tasks, and running only the necessary product, engineering, design, QA, ship, and deploy gates. Also use for bounded product reviews or strategy decisions when explicitly requested. Do not use for isolated bugs or small, already-clear code changes.
 ---
 
 # SOP SLOP
@@ -17,7 +17,7 @@ Repository instructions and canonical artifacts override this generic workflow. 
 
 ## Graph contract
 
-[references/workflow-graph.json](references/workflow-graph.json) is the exact active topology: node IDs, edges, closed outcome tables, named guards, evidence types, completion predicates, authority boundaries, retry budgets, trace scenarios, and terminal states. [references/artifact-and-gate-map.md](references/artifact-and-gate-map.md) explains their product meaning and the target architecture without redefining exact edges.
+[references/workflow-graph.json](references/workflow-graph.json) is the exact active topology: node IDs, edges, reusable call/return templates, closed outcome tables, named guards, evidence types, completion predicates, authority boundaries, retry budgets, trace scenarios, and terminal states. [references/artifact-and-gate-map.md](references/artifact-and-gate-map.md) explains their product meaning and the target architecture without redefining exact edges.
 
 Treat nodes as outcome stages and skills, people, agents, or deterministic tools as executors. One logical controller owns transitions. Executors return evidence; they never advance the graph by claiming they are done.
 
@@ -210,6 +210,14 @@ Parallelize read, review, test, and QA work against frozen inputs. Active v0 ser
 
 Persistent Codex role files may later project this four-role catalog after the installed Codex schema is verified. They are configuration convenience only, not workflow authority or agent memory.
 
+## Bounded deliberation adapter
+
+Read [references/deliberation-protocol.md](references/deliberation-protocol.md) when an eligible node contains material competing judgment that canonical evidence or an established pattern does not settle. Routine and deterministic decisions skip it.
+
+Invoke the single `bounded_peer_deliberation` call/return template with one allowlisted, versioned profile. Design Council is the `design` profile; product/domain, specification, engineering, review adjudication, QA triage, and learning/retro use the same protocol with different lenses. Freeze a typed request, preserve its stable mission-anchor digest, suspend the caller, and bind every result to the invoking run, node, frozen-input digest, profile version, content-digested accepted proposal, and exact return node.
+
+Every deliberation specialist and proposal owner is a fresh `reviewer` execution using `gpt-5.6-luna` at `max` reasoning, recorded in its delegation envelope and receipt. Specialists must first observe independently, then receive peers' lossless typed statements, answer named peers, expose the required contribution fields, revise within the two-round budget, produce one joint proposal, and consent without majority voting. The controller alone validates the return and chooses the legal parent transition. Hard safety, truth, tenant/security, release authority, verification, and failed ship/deploy guards cannot be debated away; accepted work still has one implementation writer.
+
 ## Codex picker adapter
 
 This adapter controls how all nested skills present material choices in Codex. It overrides their host-specific question presentation, not their decision logic.
@@ -275,7 +283,9 @@ python3 scripts/validate_run_replay.py <document.json> --scenario run --require-
 
 The temporary document is diagnostic input, not a new source of workflow truth. Exit `2` means delivery may still be factually complete, but graph closure is unproven; report the delivery result and missing evidence or transitions separately. This check never grants authority or changes the active graph.
 
-Use [references/forward-test-fixture-0.4.0.json](references/forward-test-fixture-0.4.0.json) as the public synthetic annotation-batch forward-test fixture for this diagnostic.
+Every observed transition names its exact `edge_id`; transitions from a closed-outcome node also record the selected `outcome`. A source/target pair alone is insufficient because multiple guarded edges may share the same nodes. A `resolve_candidate` transition additionally names the exact `join_id`, whose receipt binds the frozen subject and exact branch receipt IDs.
+
+Use [references/forward-test-fixture-0.5.0.json](references/forward-test-fixture-0.5.0.json) as the public synthetic annotation-batch forward-test fixture for this diagnostic.
 
 ## Completion
 

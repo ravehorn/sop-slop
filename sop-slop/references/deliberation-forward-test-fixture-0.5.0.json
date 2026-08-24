@@ -1,0 +1,615 @@
+{
+  "schema_version": 1,
+  "forward_test": {
+    "run_id": "sop-slop-deliberation-forward-0.5.0",
+    "graph_version": "0.5.0",
+    "mode": "evolution",
+    "lane": "product-change",
+    "tier": "T2",
+    "requested_completion": "reviewed_implementation_plan",
+    "delivery_status": "completed",
+    "effective_status": "completed",
+    "deliberation_forward_test": true,
+    "selected_stages": [
+      "intake_run",
+      "select_entry_stage",
+      "review_experience",
+      "review_engineering",
+      "record_run_receipt",
+      "review_run",
+      "run_completed"
+    ],
+    "planned_slice_ids": [],
+    "observed_transitions": [
+      {"from": "intake_run", "to": "select_entry_stage", "edge_id": "intake_to_entry", "outcome": "ordinary"},
+      {"from": "select_entry_stage", "to": "review_experience", "edge_id": "entry_to_review_experience", "outcome": "review_experience"},
+      {"from": "review_experience", "to": "review_engineering", "edge_id": "design_to_engineering", "outcome": "accepted_engineering"},
+      {"from": "review_engineering", "to": "record_run_receipt", "edge_id": "engineering_to_receipt", "outcome": "accepted_complete"},
+      {"from": "record_run_receipt", "to": "review_run", "edge_id": "receipt_to_review"},
+      {"from": "review_run", "to": "run_completed", "edge_id": "review_to_completed", "outcome": "completed"}
+    ],
+    "deliberations": [
+      {
+        "request_id": "delib-design-001",
+        "template_id": "bounded_peer_deliberation",
+        "internal_transitions": [
+          "prepare_deliberation->observe_independently",
+          "observe_independently->discuss_with_peers",
+          "discuss_with_peers->draft_joint_proposal",
+          "draft_joint_proposal->check_deliberation_consent",
+          "check_deliberation_consent->validate_deliberation",
+          "validate_deliberation->return_to_invoking_node"
+        ],
+        "closed_outcome": "accepted",
+        "evidence_cycle_receipt_ids": [],
+        "human_decision_receipt_ids": []
+      },
+      {
+        "request_id": "delib-engineering-001",
+        "template_id": "bounded_peer_deliberation",
+        "internal_transitions": [
+          "prepare_deliberation->observe_independently",
+          "observe_independently->discuss_with_peers",
+          "discuss_with_peers->draft_joint_proposal",
+          "draft_joint_proposal->check_deliberation_consent",
+          "check_deliberation_consent->validate_deliberation",
+          "validate_deliberation->discuss_with_peers",
+          "discuss_with_peers->draft_joint_proposal",
+          "draft_joint_proposal->check_deliberation_consent",
+          "check_deliberation_consent->validate_deliberation",
+          "validate_deliberation->return_to_invoking_node"
+        ],
+        "closed_outcome": "accepted",
+        "revision_rounds": 1,
+        "evidence_cycle_receipt_ids": [],
+        "human_decision_receipt_ids": []
+      }
+    ],
+    "delegations": [
+      {
+        "delegation_id": "delegation-design-flow",
+        "execution_id": "exec-design-flow",
+        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
+        "graph_version": "0.5.0",
+        "node_id": "review_experience",
+        "request_id": "delib-design-001",
+        "specialist_id": "design-flow",
+        "role_id": "reviewer",
+        "lens": "interaction_user_flow",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "ownership_scope": "Review only the frozen interaction flow and participate in bounded peer discussion.",
+        "allowed_tools": ["repository_read", "screenshot_read"],
+        "permissions": "read-only",
+        "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"],
+        "expected_output": "Typed observations, peer responses, consent, and the joint proposal when selected as owner.",
+        "verification_criteria": ["all contribution fields present", "claims cite frozen evidence", "no write performed"],
+        "stop_condition": "Return after consent or when the controller ends the two-round budget.",
+        "isolation": "fresh_agent_thread"
+      },
+      {
+        "delegation_id": "delegation-design-visual",
+        "execution_id": "exec-design-visual",
+        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
+        "graph_version": "0.5.0",
+        "node_id": "review_experience",
+        "request_id": "delib-design-001",
+        "specialist_id": "design-visual",
+        "role_id": "reviewer",
+        "lens": "visual_hierarchy_design_system",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "ownership_scope": "Review only visual hierarchy and existing design-system fit.",
+        "allowed_tools": ["repository_read", "screenshot_read"],
+        "permissions": "read-only",
+        "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"],
+        "expected_output": "Typed observations, named peer answers, and consent.",
+        "verification_criteria": ["all contribution fields present", "design-system evidence cited", "no write performed"],
+        "stop_condition": "Return after consent or when the controller ends the two-round budget.",
+        "isolation": "fresh_agent_thread"
+      },
+      {
+        "delegation_id": "delegation-design-access",
+        "execution_id": "exec-design-access",
+        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
+        "graph_version": "0.5.0",
+        "node_id": "review_experience",
+        "request_id": "delib-design-001",
+        "specialist_id": "design-access",
+        "role_id": "reviewer",
+        "lens": "accessibility_edge_cases",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "ownership_scope": "Review only accessibility, narrow-screen, and failure-state evidence.",
+        "allowed_tools": ["repository_read", "screenshot_read"],
+        "permissions": "read-only",
+        "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"],
+        "expected_output": "Typed observations, named peer answers, and consent.",
+        "verification_criteria": ["all contribution fields present", "edge cases cited", "no write performed"],
+        "stop_condition": "Return after consent or when the controller ends the two-round budget.",
+        "isolation": "fresh_agent_thread"
+      },
+      {
+        "delegation_id": "delegation-eng-simple",
+        "execution_id": "exec-eng-simple",
+        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
+        "graph_version": "0.5.0",
+        "node_id": "review_engineering",
+        "request_id": "delib-engineering-001",
+        "specialist_id": "eng-simple",
+        "role_id": "reviewer",
+        "lens": "simplicity_maintainability",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "ownership_scope": "Review the frozen architecture only for the smallest maintainable correct design.",
+        "allowed_tools": ["repository_read", "test_read"],
+        "permissions": "read-only",
+        "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"],
+        "expected_output": "Typed observations, peer responses, and consent.",
+        "verification_criteria": ["tradeoffs cite repository evidence", "no write performed"],
+        "stop_condition": "Return after consent or when the controller ends the two-round budget.",
+        "isolation": "fresh_agent_thread"
+      },
+      {
+        "delegation_id": "delegation-eng-reliability",
+        "execution_id": "exec-eng-reliability",
+        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
+        "graph_version": "0.5.0",
+        "node_id": "review_engineering",
+        "request_id": "delib-engineering-001",
+        "specialist_id": "eng-reliability",
+        "role_id": "reviewer",
+        "lens": "reliability_security",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "ownership_scope": "Review the frozen architecture only for reliability and security failure modes.",
+        "allowed_tools": ["repository_read", "test_read"],
+        "permissions": "read-only",
+        "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"],
+        "expected_output": "Typed observations, objections, named peer answers, consent, and the revised joint proposal when selected as owner.",
+        "verification_criteria": ["objections name violated requirements or missing evidence", "no write performed"],
+        "stop_condition": "Return after consent or when the controller ends the two-round budget.",
+        "isolation": "fresh_agent_thread"
+      },
+      {
+        "delegation_id": "delegation-eng-ops",
+        "execution_id": "exec-eng-ops",
+        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
+        "graph_version": "0.5.0",
+        "node_id": "review_engineering",
+        "request_id": "delib-engineering-001",
+        "specialist_id": "eng-ops",
+        "role_id": "reviewer",
+        "lens": "operations_cost",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "ownership_scope": "Review the frozen architecture only for operational fit and cost.",
+        "allowed_tools": ["repository_read", "test_read"],
+        "permissions": "read-only",
+        "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"],
+        "expected_output": "Typed observations, named peer answers, and consent.",
+        "verification_criteria": ["cost claims cite frozen evidence", "no write performed"],
+        "stop_condition": "Return after consent or when the controller ends the two-round budget.",
+        "isolation": "fresh_agent_thread"
+      }
+    ],
+    "evidence": {
+      "route_card": [
+        {
+          "run_id": "sop-slop-deliberation-forward-0.5.0",
+          "graph_version": "0.5.0",
+          "lane": "product-change",
+          "tier": "T2",
+          "primary_outcome": "Prove that two eligible review nodes can invoke one bounded peer-deliberation subgraph and resume their exact caller.",
+          "observable_proof": "Design and engineering calls share one template, use Luna/max specialists, show peer influence and objection revision, and return without weakening hard guards.",
+          "non_goals": ["majority voting", "parallel implementation", "dynamic downstream routing"],
+          "requested_completion": "reviewed_implementation_plan",
+          "current_node": "record_run_receipt",
+          "authority_source": "synthetic-fixture:generic-deliberation",
+          "entry_stage": "review_experience",
+          "selected_stages": ["intake_run", "select_entry_stage", "review_experience", "review_engineering", "record_run_receipt", "review_run", "run_completed"],
+          "skipped_stages": ["align_product", "specify_product", "plan_slices", "deliver_slice", "ship_change", "land_and_deploy_change"],
+          "skip_reasons": {
+            "align_product": "The synthetic decision briefs are frozen.",
+            "specify_product": "The fixture tests review-node call and return, not specification authoring.",
+            "plan_slices": "The requested completion is an accepted implementation plan.",
+            "deliver_slice": "No implementation is authorized in a read-only deliberation fixture.",
+            "ship_change": "No candidate exists.",
+            "land_and_deploy_change": "No release is in scope."
+          }
+        }
+      ],
+      "authority_envelope": [
+        {
+          "allowed_actions": ["read frozen inputs", "spawn bounded reviewer threads", "route typed peer statements", "record synthetic receipts"],
+          "forbidden_actions": ["write product code", "waive hard guards", "choose a downstream parent stage"],
+          "resources": ["design-brief:v1", "engineering-brief:v1"],
+          "environments": ["local synthetic test"],
+          "limits": {"active_deliberations_per_caller": 1, "rounds": 2, "contributions_per_specialist_per_round": 2, "writers": 0},
+          "expires_at": "2099-01-01T00:00:00Z"
+        }
+      ],
+      "deliberation_request": [
+        {
+          "request_id": "delib-design-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
+          "invoking_node_id": "review_experience",
+          "decision_question": "How should the primary confirmation action remain visible and accessible on narrow screens?",
+          "deliberation_reason": "The frozen screenshots reveal a material conflict between content space, hierarchy, and keyboard reachability that the design system does not settle.",
+          "profile_id": "design",
+          "profile_version": "1.0.0",
+          "frozen_input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"],
+          "input_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4",
+          "participant_roster": ["design-flow", "design-visual", "design-access"],
+          "specialist_lenses": ["interaction_user_flow", "visual_hierarchy_design_system", "accessibility_edge_cases"],
+          "model": "gpt-5.6-luna",
+          "reasoning_effort": "max",
+          "acceptance_criteria": ["primary action remains reachable", "existing components are reused", "keyboard and 320px viewport checks pass"],
+          "hard_invariants": ["no hidden required action", "no accessibility regression", "no code writes during deliberation"],
+          "round_budget": 2,
+          "contribution_budget": {"min": 1, "max": 2},
+          "authority_envelope_ref": "authority_envelope:generic-deliberation",
+          "expected_return_evidence": ["deliberation_round", "deliberation_joint_proposal", "deliberation_consent_receipt", "deliberation_return_receipt"],
+          "return_node_id": "review_experience",
+          "return_contract": "resume_exact_invoking_node_after_controller_validation",
+          "issuer": "synthetic-controller",
+          "created_at": "2026-01-02T00:00:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
+          "invoking_node_id": "review_engineering",
+          "decision_question": "Should audit-event publication happen inline or through the repository's existing outbox boundary?",
+          "deliberation_reason": "The two options materially trade simplicity against retry safety, and frozen repository evidence does not resolve the failure requirement.",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "frozen_input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"],
+          "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
+          "participant_roster": ["eng-simple", "eng-reliability", "eng-ops"],
+          "specialist_lenses": ["simplicity_maintainability", "reliability_security", "operations_cost"],
+          "model": "gpt-5.6-luna",
+          "reasoning_effort": "max",
+          "acceptance_criteria": ["durable after commit", "bounded implementation", "observable retries", "no second action authority"],
+          "hard_invariants": ["data truth remains server-authoritative", "failed verification cannot be waived", "one implementation writer after return"],
+          "round_budget": 2,
+          "contribution_budget": {"min": 1, "max": 2},
+          "authority_envelope_ref": "authority_envelope:generic-deliberation",
+          "expected_return_evidence": ["deliberation_round", "deliberation_joint_proposal", "deliberation_consent_receipt", "deliberation_return_receipt"],
+          "return_node_id": "review_engineering",
+          "return_contract": "resume_exact_invoking_node_after_controller_validation",
+          "issuer": "synthetic-controller",
+          "created_at": "2026-01-02T00:10:00Z"
+        }
+      ],
+      "deliberation_round": [
+        {
+          "request_id": "delib-design-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_node_id": "review_experience",
+          "input_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4",
+          "profile_id": "design",
+          "profile_version": "1.0.0",
+          "round_number": 1,
+          "phase": "independent_observation_and_peer_challenge",
+          "participant_roster": ["design-flow", "design-visual", "design-access"],
+          "delegation_envelopes": ["exec-design-flow", "exec-design-visual", "exec-design-access"],
+          "delegation_receipts": ["exec-design-flow", "exec-design-visual", "exec-design-access"],
+          "contributions": [
+            {"contribution_id": "d-flow-1", "specialist_id": "design-flow", "independent": true, "CLAIM": "Keep confirmation in the task flow rather than a detached footer.", "WHY": "Users confirm after reviewing the final field.", "EVIDENCE": "design-brief:v1#workflow", "QUESTION_FOR": "design-visual: Can the existing action bar preserve hierarchy without obscuring content?", "OBJECTION": "A detached global action breaks spatial continuity.", "CHANGE_MY_MIND_IF": "A keyboard or narrow-screen check proves the inline action unreachable."},
+            {"contribution_id": "d-visual-1", "specialist_id": "design-visual", "independent": true, "CLAIM": "Reuse the existing sticky action bar with compact spacing.", "WHY": "It is the only established component for persistent primary actions.", "EVIDENCE": "design-system:current#sticky-action-bar", "QUESTION_FOR": "design-access: Does sticky positioning remain safe at 320px with zoom?", "OBJECTION": "A new floating pattern would fragment the system.", "CHANGE_MY_MIND_IF": "The existing component fails the frozen viewport evidence."},
+            {"contribution_id": "d-access-1", "specialist_id": "design-access", "independent": true, "CLAIM": "The action must remain last in DOM order and visible above the software keyboard.", "WHY": "Visual persistence alone does not ensure focus order or reachability.", "EVIDENCE": "screenshots:narrow-v1#keyboard", "QUESTION_FOR": "design-flow: Can the flow tolerate a sticky visual treatment while retaining DOM order?", "OBJECTION": "Absolute positioning can cover validation messages.", "CHANGE_MY_MIND_IF": "A focus-order and zoom check proves an alternative equally reachable."},
+            {"contribution_id": "d-flow-2", "specialist_id": "design-flow", "independent": false, "CLAIM": "Adopt the sticky action bar but keep it after form content in DOM order.", "WHY": "The accessibility objection changes the interaction constraint without breaking flow continuity.", "EVIDENCE": "d-access-1 and design-system:current#sticky-action-bar", "QUESTION_FOR": "design-access: Does reserved bottom space resolve covered validation messages?", "OBJECTION": "None if content reserves the bar height.", "CHANGE_MY_MIND_IF": "The 320px test still hides the last error."},
+            {"contribution_id": "d-visual-2", "specialist_id": "design-visual", "independent": false, "CLAIM": "Use the current bar plus a reserved content inset, not a new floating control.", "WHY": "This answers the peer's coverage objection with an existing tokenized spacing rule.", "EVIDENCE": "d-access-1 and design-system:current#bottom-inset", "QUESTION_FOR": "design-flow: Is the compact label still unambiguous in the final step?", "OBJECTION": "None.", "CHANGE_MY_MIND_IF": "The existing label loses task meaning in usability evidence."},
+            {"contribution_id": "d-access-2", "specialist_id": "design-access", "independent": false, "CLAIM": "Accept the sticky bar with DOM-order, safe-area, zoom, and reserved-inset checks.", "WHY": "The peers incorporated the reachability and overlap constraints.", "EVIDENCE": "d-flow-2 and d-visual-2", "QUESTION_FOR": "design-visual: Will focus styling remain the existing high-contrast token?", "OBJECTION": "Retain a concern until the 200% zoom check is recorded.", "CHANGE_MY_MIND_IF": "The implementation omits any named accessibility check."}
+          ],
+          "broadcasts": [
+            {"recipient": "design-flow", "statement_refs": ["d-visual-1", "d-visual-2", "d-access-1", "d-access-2"], "delivery": "lossless"},
+            {"recipient": "design-visual", "statement_refs": ["d-flow-1", "d-flow-2", "d-access-1", "d-access-2"], "delivery": "lossless"},
+            {"recipient": "design-access", "statement_refs": ["d-flow-1", "d-flow-2", "d-visual-1", "d-visual-2"], "delivery": "lossless"}
+          ],
+          "named_questions": [
+            {"question_id": "q-design-1", "from": "design-flow", "to": "design-visual", "question": "Can the existing action bar preserve hierarchy without obscuring content?"},
+            {"question_id": "q-design-2", "from": "design-access", "to": "design-flow", "question": "Can sticky treatment retain DOM order?"}
+          ],
+          "responses": [
+            {"question_id": "q-design-1", "responder": "design-visual", "response": "Yes, with the existing reserved bottom inset."},
+            {"question_id": "q-design-2", "responder": "design-flow", "response": "Yes; visual position need not change DOM order."}
+          ],
+          "objections": [],
+          "position_changes": [
+            {"specialist_id": "design-flow", "change": "Added DOM-order and reserved-inset constraints after the accessibility objection."},
+            {"specialist_id": "design-visual", "change": "Retained the existing-component position after peers added the missing accessibility constraints."},
+            {"specialist_id": "design-access", "change": "Moved from objection to accept-with-concern after peers added testable safeguards."}
+          ],
+          "controller_validation": "accepted_for_joint_proposal",
+          "created_at": "2026-01-02T00:04:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_node_id": "review_engineering",
+          "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "round_number": 1,
+          "phase": "independent_observation_and_peer_challenge",
+          "participant_roster": ["eng-simple", "eng-reliability", "eng-ops"],
+          "delegation_envelopes": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "delegation_receipts": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "contributions": [
+            {"contribution_id": "e-simple-1", "specialist_id": "eng-simple", "independent": true, "CLAIM": "Publish inline after the primary commit.", "WHY": "It adds no worker or queue lifecycle.", "EVIDENCE": "architecture:current#inline-events", "QUESTION_FOR": "eng-reliability: Which concrete failure violates durability?", "OBJECTION": "An outbox may be unnecessary machinery.", "CHANGE_MY_MIND_IF": "A post-commit crash can demonstrably lose a required audit event."},
+            {"contribution_id": "e-reliability-1", "specialist_id": "eng-reliability", "independent": true, "CLAIM": "Use the existing transactional outbox.", "WHY": "Inline publication after commit has a crash gap.", "EVIDENCE": "failure-requirement:audit-durable and architecture:current#outbox", "QUESTION_FOR": "eng-simple: How does inline publication recover after process death?", "OBJECTION": "The first proposal violates durable-after-commit acceptance.", "CHANGE_MY_MIND_IF": "A repository test proves atomic publication without the outbox."},
+            {"contribution_id": "e-ops-1", "specialist_id": "eng-ops", "independent": true, "CLAIM": "Reuse the existing outbox worker only if no new service is added.", "WHY": "Operational cost is bounded when the existing retry loop owns delivery.", "EVIDENCE": "architecture:current#outbox-worker", "QUESTION_FOR": "eng-reliability: Can retry observability use current metrics?", "OBJECTION": "A new queue service is outside scope.", "CHANGE_MY_MIND_IF": "The current worker cannot express the event contract."},
+            {"contribution_id": "e-simple-2", "specialist_id": "eng-simple", "independent": false, "CLAIM": "Reuse the existing outbox rather than publish inline.", "WHY": "The reliability peer identified a real crash gap and reuse avoids a new subsystem.", "EVIDENCE": "e-reliability-1 and architecture:current#outbox", "QUESTION_FOR": "eng-ops: What is the smallest observable retry contract?", "OBJECTION": "Do not add a second worker.", "CHANGE_MY_MIND_IF": "The existing outbox requires broader schema changes than the inline repair."},
+            {"contribution_id": "e-reliability-2", "specialist_id": "eng-reliability", "independent": false, "CLAIM": "Outbox reuse needs a crash-after-commit recovery test before acceptance.", "WHY": "Architecture evidence alone does not prove the specific event is durable.", "EVIDENCE": "failure-requirement:audit-durable", "QUESTION_FOR": "eng-ops: Which existing metric proves retry completion?", "OBJECTION": "Missing failure-path verification remains material.", "CHANGE_MY_MIND_IF": "The joint proposal names the exact recovery and metric checks."},
+            {"contribution_id": "e-ops-2", "specialist_id": "eng-ops", "independent": false, "CLAIM": "Use current retry count and dead-letter alert metrics.", "WHY": "They avoid new infrastructure while exposing failure.", "EVIDENCE": "architecture:current#outbox-metrics", "QUESTION_FOR": "eng-simple: Can the slice remain one schema adapter plus tests?", "OBJECTION": "None if no new service is introduced.", "CHANGE_MY_MIND_IF": "The current metrics cannot identify this event type."}
+          ],
+          "broadcasts": [
+            {"recipient": "eng-simple", "statement_refs": ["e-reliability-1", "e-reliability-2", "e-ops-1", "e-ops-2"], "delivery": "lossless"},
+            {"recipient": "eng-reliability", "statement_refs": ["e-simple-1", "e-simple-2", "e-ops-1", "e-ops-2"], "delivery": "lossless"},
+            {"recipient": "eng-ops", "statement_refs": ["e-simple-1", "e-simple-2", "e-reliability-1", "e-reliability-2"], "delivery": "lossless"}
+          ],
+          "named_questions": [
+            {"question_id": "q-eng-1", "from": "eng-reliability", "to": "eng-simple", "question": "How does inline publication recover after process death?"},
+            {"question_id": "q-eng-2", "from": "eng-ops", "to": "eng-reliability", "question": "Can retry observability use current metrics?"}
+          ],
+          "responses": [
+            {"question_id": "q-eng-1", "responder": "eng-simple", "response": "It cannot close the crash gap; I revise toward outbox reuse."},
+            {"question_id": "q-eng-2", "responder": "eng-reliability", "response": "Yes, if the proposal requires event-scoped retry and dead-letter checks."}
+          ],
+          "objections": [
+            {"specialist_id": "eng-reliability", "requirement": "durable after commit", "missing_evidence": "crash-after-commit recovery test"}
+          ],
+          "position_changes": [
+            {"specialist_id": "eng-simple", "change": "Changed from inline publication to existing outbox reuse after the crash-gap evidence."}
+          ],
+          "controller_validation": "revision_required",
+          "created_at": "2026-01-02T00:14:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_node_id": "review_engineering",
+          "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "round_number": 2,
+          "phase": "bounded_revision",
+          "participant_roster": ["eng-simple", "eng-reliability", "eng-ops"],
+          "delegation_envelopes": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "delegation_receipts": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "contributions": [
+            {"contribution_id": "e-simple-3", "specialist_id": "eng-simple", "independent": false, "CLAIM": "The revised slice is one event adapter plus recovery tests on the existing outbox.", "WHY": "This retains the smallest correct boundary.", "EVIDENCE": "e-reliability-2 and architecture:current#outbox", "QUESTION_FOR": "eng-reliability: Does the named crash test close your objection?", "OBJECTION": "None.", "CHANGE_MY_MIND_IF": "The adapter cannot remain inside the existing transaction."},
+            {"contribution_id": "e-reliability-3", "specialist_id": "eng-reliability", "independent": false, "CLAIM": "Accept with crash-after-commit, retry, idempotency, and dead-letter checks.", "WHY": "The revision now maps every durability claim to evidence.", "EVIDENCE": "revised-proposal:eng-v2", "QUESTION_FOR": "eng-ops: Are these checks observable without a new service?", "OBJECTION": "None after the checks are mandatory.", "CHANGE_MY_MIND_IF": "Any check is made optional or a hard gate fails."},
+            {"contribution_id": "e-ops-3", "specialist_id": "eng-ops", "independent": false, "CLAIM": "The revised plan uses current worker metrics and adds no service.", "WHY": "It stays inside the frozen operational envelope.", "EVIDENCE": "architecture:current#outbox-metrics", "QUESTION_FOR": "eng-simple: Is one writer retained for implementation?", "OBJECTION": "None.", "CHANGE_MY_MIND_IF": "Implementation splits writes across agents."}
+          ],
+          "broadcasts": [
+            {"recipient": "eng-simple", "statement_refs": ["e-reliability-3", "e-ops-3"], "delivery": "lossless"},
+            {"recipient": "eng-reliability", "statement_refs": ["e-simple-3", "e-ops-3"], "delivery": "lossless"},
+            {"recipient": "eng-ops", "statement_refs": ["e-simple-3", "e-reliability-3"], "delivery": "lossless"}
+          ],
+          "named_questions": [
+            {"question_id": "q-eng-3", "from": "eng-simple", "to": "eng-reliability", "question": "Does the named crash test close your objection?"},
+            {"question_id": "q-eng-4", "from": "eng-ops", "to": "eng-simple", "question": "Is one writer retained for implementation?"}
+          ],
+          "responses": [
+            {"question_id": "q-eng-3", "responder": "eng-reliability", "response": "Yes, with retry, idempotency, and dead-letter checks also required."},
+            {"question_id": "q-eng-4", "responder": "eng-simple", "response": "Yes; the deliberation is read-only and returns one accepted plan to one writer."}
+          ],
+          "objections": [],
+          "position_changes": [
+            {"specialist_id": "eng-reliability", "change": "Changed from object to accept after the revised proposal made failure checks mandatory."},
+            {"specialist_id": "eng-ops", "change": "Retained acceptance because no new service or writer was introduced."}
+          ],
+          "controller_validation": "accepted_for_joint_proposal",
+          "created_at": "2026-01-02T00:18:00Z"
+        }
+      ],
+      "deliberation_joint_proposal": [
+        {
+          "request_id": "delib-design-001",
+          "input_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4",
+          "profile_id": "design",
+          "profile_version": "1.0.0",
+          "round_number": 1,
+          "owner_lens": "interaction_user_flow",
+          "owner_delegation_envelope": "exec-design-flow",
+          "owner_delegation_receipt": "exec-design-flow",
+          "proposal_digest": "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e",
+          "proposal": "Reuse the sticky action bar after form content in DOM order, reserve its inset, preserve safe-area and focus tokens, and require 320px, keyboard, and 200% zoom checks.",
+          "acceptance_mapping": {"primary action remains reachable": "sticky bar plus DOM order", "existing components are reused": "current sticky action bar", "keyboard and 320px viewport checks pass": "mandatory interaction checks"},
+          "hard_invariant_check": "pass",
+          "evidence_refs": ["d-flow-2", "d-visual-2", "d-access-2"],
+          "retained_concerns": ["Verify 200% zoom before implementation acceptance."],
+          "created_at": "2026-01-02T00:05:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "round_number": 1,
+          "owner_lens": "simplicity_maintainability",
+          "owner_delegation_envelope": "exec-eng-simple",
+          "owner_delegation_receipt": "exec-eng-simple",
+          "proposal_digest": "4809dc3a6e6421a52955b32227064d5c9c6ddf07bcea9fa27121069669138254",
+          "proposal": "Reuse the existing outbox with the current worker and metrics.",
+          "acceptance_mapping": {"durable after commit": "existing outbox", "bounded implementation": "no new service"},
+          "hard_invariant_check": "unproven",
+          "evidence_refs": ["e-simple-2", "e-reliability-2", "e-ops-2"],
+          "retained_concerns": ["Crash-after-commit recovery is not yet required by the proposal."],
+          "created_at": "2026-01-02T00:15:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "round_number": 2,
+          "owner_lens": "reliability_security",
+          "owner_delegation_envelope": "exec-eng-reliability",
+          "owner_delegation_receipt": "exec-eng-reliability",
+          "proposal_digest": "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5",
+          "proposal": "Write the audit event through the existing transactional outbox, use the existing worker, and require crash-after-commit, retry, idempotency, dead-letter, and event-scoped metric checks; one implementation agent owns all writes.",
+          "acceptance_mapping": {"durable after commit": "transactional outbox plus crash test", "bounded implementation": "one adapter, existing worker", "observable retries": "existing event-scoped metrics", "no second action authority": "outbox transports only committed truth"},
+          "hard_invariant_check": "pass",
+          "evidence_refs": ["e-simple-3", "e-reliability-3", "e-ops-3"],
+          "retained_concerns": ["Implementation must prove the transaction boundary rather than assume it."],
+          "created_at": "2026-01-02T00:19:00Z"
+        }
+      ],
+      "deliberation_consent_receipt": [
+        {
+          "request_id": "delib-design-001",
+          "proposal_digest": "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e",
+          "profile_id": "design",
+          "profile_version": "1.0.0",
+          "specialist_responses": [
+            {"specialist_id": "design-flow", "status": "accept", "reason": "Flow remains coherent."},
+            {"specialist_id": "design-visual", "status": "accept", "reason": "Existing system components are reused."},
+            {"specialist_id": "design-access", "status": "accept_with_concern", "reason": "Keep the 200% zoom check mandatory."}
+          ],
+          "allowed_values": ["accept", "accept_with_concern", "object"],
+          "objections": [],
+          "concerns": ["200% zoom requires implementation evidence."],
+          "delegation_envelopes": ["exec-design-flow", "exec-design-visual", "exec-design-access"],
+          "delegation_receipts": ["exec-design-flow", "exec-design-visual", "exec-design-access"],
+          "created_at": "2026-01-02T00:06:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "proposal_digest": "4809dc3a6e6421a52955b32227064d5c9c6ddf07bcea9fa27121069669138254",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "specialist_responses": [
+            {"specialist_id": "eng-simple", "status": "accept", "reason": "The existing boundary is reused."},
+            {"specialist_id": "eng-reliability", "status": "object", "reason": "The proposal omits required crash-after-commit proof."},
+            {"specialist_id": "eng-ops", "status": "accept_with_concern", "reason": "No new service, but recovery evidence is missing."}
+          ],
+          "allowed_values": ["accept", "accept_with_concern", "object"],
+          "objections": [{"specialist_id": "eng-reliability", "violated_requirement": "durable after commit", "missing_evidence": "crash recovery test"}],
+          "concerns": ["The first proposal is not yet acceptance-ready."],
+          "delegation_envelopes": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "delegation_receipts": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "created_at": "2026-01-02T00:16:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "proposal_digest": "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "specialist_responses": [
+            {"specialist_id": "eng-simple", "status": "accept", "reason": "This is the smallest correct reuse."},
+            {"specialist_id": "eng-reliability", "status": "accept", "reason": "The revision requires the missing failure evidence."},
+            {"specialist_id": "eng-ops", "status": "accept_with_concern", "reason": "Retain the one-writer and no-new-service limits."}
+          ],
+          "allowed_values": ["accept", "accept_with_concern", "object"],
+          "objections": [],
+          "concerns": ["Do not split implementation writes."],
+          "delegation_envelopes": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "delegation_receipts": ["exec-eng-simple", "exec-eng-reliability", "exec-eng-ops"],
+          "created_at": "2026-01-02T00:20:00Z"
+        }
+      ],
+      "deliberation_return_receipt": [
+        {
+          "request_id": "delib-design-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
+          "invoking_node_id": "review_experience",
+          "input_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4",
+          "profile_id": "design",
+          "profile_version": "1.0.0",
+          "accepted_proposal_ref": "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e",
+          "disposition": "accepted",
+          "controller_validation": "accepted",
+          "dissent": ["Accessibility concern retained: verify 200% zoom before implementation acceptance."],
+          "hard_invariant_check": "pass",
+          "invalidated_artifacts": [],
+          "evidence_refs": ["delib-design-001:round-1", "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e"],
+          "return_node_id": "review_experience",
+          "returned_at": "2026-01-02T00:07:00Z"
+        },
+        {
+          "request_id": "delib-engineering-001",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
+          "invoking_node_id": "review_engineering",
+          "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
+          "profile_id": "engineering",
+          "profile_version": "1.0.0",
+          "accepted_proposal_ref": "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5",
+          "disposition": "accepted",
+          "controller_validation": "accepted",
+          "dissent": ["Operational concern retained: no new worker or parallel writer."],
+          "hard_invariant_check": "pass",
+          "invalidated_artifacts": [],
+          "evidence_refs": ["delib-engineering-001:round-1", "delib-engineering-001:round-2", "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5"],
+          "return_node_id": "review_engineering",
+          "returned_at": "2026-01-02T00:21:00Z"
+        }
+      ],
+      "delegation_receipt": [
+        {
+          "delegation_id": "delegation-design-flow", "execution_id": "exec-design-flow", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-flow", "lens": "interaction_user_flow", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "interaction_user_flow", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and proposal ownership", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted", "evidence_refs": ["d-flow-1", "d-flow-2", "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:30Z"
+        },
+        {
+          "delegation_id": "delegation-design-visual", "execution_id": "exec-design-visual", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-visual", "lens": "visual_hierarchy_design_system", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "visual_hierarchy_design_system", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted", "evidence_refs": ["d-visual-1", "d-visual-2"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:31Z"
+        },
+        {
+          "delegation_id": "delegation-design-access", "execution_id": "exec-design-access", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-access", "lens": "accessibility_edge_cases", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "accessibility_edge_cases", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accept_with_concern", "evidence_refs": ["d-access-1", "d-access-2"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:32Z"
+        },
+        {
+          "delegation_id": "delegation-eng-simple", "execution_id": "exec-eng-simple", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-simple", "lens": "simplicity_maintainability", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "simplicity_maintainability", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted_after_revision", "evidence_refs": ["e-simple-1", "e-simple-2", "e-simple-3"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:30Z"
+        },
+        {
+          "delegation_id": "delegation-eng-reliability", "execution_id": "exec-eng-reliability", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-reliability", "lens": "reliability_security", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "reliability_security", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion, objection, revised proposal ownership, and consent", "verification_criteria": ["typed fields", "objection resolved with evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted_after_revision", "evidence_refs": ["e-reliability-1", "e-reliability-2", "e-reliability-3", "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:31Z"
+        },
+        {
+          "delegation_id": "delegation-eng-ops", "execution_id": "exec-eng-ops", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-ops", "lens": "operations_cost", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "operations_cost", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accept_with_concern", "evidence_refs": ["e-ops-1", "e-ops-2", "e-ops-3"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:32Z"
+        }
+      ],
+      "verification_receipt": [
+        {"receipt_id": "verification-design-deliberation-return", "check_id": "design-deliberation-return", "subject_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4", "result": "pass", "details_uri": "fixture://delib-design-001", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:08:00Z"},
+        {"receipt_id": "verification-engineering-deliberation-return", "check_id": "engineering-deliberation-return", "subject_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada", "result": "pass", "details_uri": "fixture://delib-engineering-001", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:22:00Z"}
+      ],
+      "run_receipt": [
+        {
+          "run_id": "sop-slop-deliberation-forward-0.5.0",
+          "graph_version": "0.5.0",
+          "status": "completed",
+          "decisions": ["invoke design profile", "invoke engineering profile", "accept revised engineering proposal"],
+          "transitions": ["intake_run->select_entry_stage", "select_entry_stage->review_experience", "review_experience->review_engineering", "review_engineering->record_run_receipt", "record_run_receipt->review_run", "review_run->run_completed"],
+          "evidence_refs": ["delib-design-001", "delib-engineering-001", "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e", "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5"],
+          "authority_use": ["six read-only specialist executions", "controller-owned exact returns"],
+          "started_at": "2026-01-02T00:00:00Z",
+          "closed_at": "2026-01-02T00:23:00Z"
+        }
+      ],
+      "run_review_receipt": [
+        {
+          "run_id": "sop-slop-deliberation-forward-0.5.0",
+          "graph_version": "0.5.0",
+          "review_status": "completed",
+          "delivery_status": "completed",
+          "effective_status": "completed",
+          "objective_results": {"two_callers_one_template": "pass", "luna_max": "pass", "peer_influence": "pass", "objection_revision": "pass", "exact_return": "pass", "hard_guards": "pass", "single_writer": "pass"},
+          "root_cause_class": "no_issue",
+          "review_error": null,
+          "proposal_ref": null,
+          "reviewer": "synthetic-independent-forward-test",
+          "created_at": "2026-01-02T00:24:00Z"
+        }
+      ]
+    },
+    "expected_diagnostics": []
+  }
+}

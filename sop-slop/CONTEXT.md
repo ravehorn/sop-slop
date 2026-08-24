@@ -68,6 +68,18 @@ _Avoid_: Open-ended prompt
 The specialist's typed return record plus the controller's validation. It is supporting evidence only and never completes a graph node or selects an edge by itself.
 _Avoid_: Subagent done claim
 
+**Deliberation Profile**:
+Versioned lenses, acceptance focus, and eligible caller nodes supplied as configuration to the one bounded peer-deliberation protocol. Design Council is the `design` profile.
+_Avoid_: Separate council graph, dynamic role invention
+
+**Deliberation Request**:
+The frozen call contract binding one material question to its invoking run, stable mission-anchor digest, node, canonical-input-reference digest, profile version, Luna/max roster, acceptance criteria, invariants, budgets, authority, and exact return.
+_Avoid_: Open-ended brainstorming prompt
+
+**Deliberation Return Receipt**:
+The controller-validated result bound to the exact caller, frozen inputs, accepted proposal, dissent, invariant check, invalidations, and one closed disposition.
+_Avoid_: Vote result, child-selected next stage
+
 **Fresh Agent Execution**:
 One newly spawned execution with no assumed durable private state. Continuity comes from canonical graph artifacts and reviewed shared memory supplied in the delegation envelope.
 _Avoid_: Always-running personal agent

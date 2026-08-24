@@ -67,7 +67,9 @@ def validate(graph: dict[str, Any]) -> list[str]:
     predicates = _indexed(graph.get("predicates"), "predicate", errors)
     evidence = _indexed(graph.get("evidence_types"), "evidence type", errors)
     specialist_roles = _indexed(graph.get("specialist_roles"), "specialist role", errors)
+    deliberation_profiles = _indexed(graph.get("deliberation_profiles"), "deliberation profile", errors)
     dynamic_templates = _indexed(graph.get("dynamic_node_templates"), "dynamic node template", errors)
+    dynamic_subgraphs = _indexed(graph.get("dynamic_subgraph_templates"), "dynamic subgraph template", errors)
     predicate_definitions = graph.get("predicate_definitions")
     executor_kinds = set(graph.get("executor_kinds", []))
     terminals = set(meta.get("terminals", []))
@@ -88,7 +90,7 @@ def validate(graph: dict[str, Any]) -> list[str]:
 
     route_fields = set(evidence.get("route_card", {}).get("required_fields", []))
     required_route_fields = {
-        "graph_version", "lane", "tier", "primary_outcome", "observable_proof", "non_goals", "requested_completion",
+        "run_id", "graph_version", "lane", "tier", "primary_outcome", "observable_proof", "non_goals", "requested_completion",
         "current_node", "authority_source", "entry_stage", "selected_stages", "skipped_stages", "skip_reasons",
     }
     if not required_route_fields <= route_fields:
@@ -100,6 +102,12 @@ def validate(graph: dict[str, Any]) -> list[str]:
     }
     if not required_lock_fields <= lock_fields:
         errors.append("alignment_lock_receipt must bind accepted alignment to an exact subject revision")
+    verification_fields = set(evidence.get("verification_receipt", {}).get("required_fields", []))
+    if "receipt_id" not in verification_fields:
+        errors.append("verification_receipt must have a stable receipt_id for exact join binding")
+    join_fields = set(evidence.get("join_receipt", {}).get("required_fields", []))
+    if "branch_receipt_ids" not in join_fields:
+        errors.append("join_receipt must bind the exact branch receipt IDs it validated")
 
     required_roles = {"explorer", "implementation_worker", "reviewer", "qa_tester"}
     if set(specialist_roles) != required_roles:
@@ -217,6 +225,59 @@ def validate(graph: dict[str, Any]) -> list[str]:
     if annotation_policy.get("completion") != "all_annotations_covered_and_all_accepted_problems_have_validated_terminal_receipts":
         errors.append("annotation batch completion must require coverage and validated problem receipts")
 
+    deliberation_policy = policies.get("deliberation")
+    if not isinstance(deliberation_policy, dict):
+        errors.append("deliberation policy must be an object")
+        deliberation_policy = {}
+    if deliberation_policy.get("mode") != "optional_bounded_peer_discussion":
+        errors.append("deliberation must stay optional and bounded")
+    if deliberation_policy.get("usage_guard") != "material_competing_judgment_unresolved_by_repository_evidence_or_established_pattern" or deliberation_policy.get("routine_action") != "skip":
+        errors.append("routine or evidence-resolved work must skip deliberation")
+    if deliberation_policy.get("template") != "bounded_peer_deliberation" or deliberation_policy.get("profile_registry") != "closed_and_versioned":
+        errors.append("deliberation must use one reusable template and a closed versioned profile registry")
+    if deliberation_policy.get("role_id") != "reviewer":
+        errors.append("deliberation must reuse the existing reviewer role")
+    if deliberation_policy.get("specialist_model") != "gpt-5.6-luna":
+        errors.append("every deliberation specialist execution must use gpt-5.6-luna")
+    if deliberation_policy.get("specialist_reasoning_effort") != "max":
+        errors.append("every deliberation specialist execution must use max reasoning effort")
+    if deliberation_policy.get("shared_input") != "frozen_deliberation_request" or deliberation_policy.get("first_round") != "independent_observation_no_final_proposal":
+        errors.append("deliberation must freeze one shared request before independent observation")
+    if deliberation_policy.get("peer_exchange") != "lossless_broadcast_and_named_follow_up":
+        errors.append("deliberation peers must receive lossless statements and named follow-up turns")
+    if deliberation_policy.get("contribution_fields") != [
+        "CLAIM", "WHY", "EVIDENCE", "QUESTION_FOR", "OBJECTION", "CHANGE_MY_MIND_IF",
+    ]:
+        errors.append("deliberation contributions must use the complete typed peer schema")
+    if deliberation_policy.get("max_discussion_rounds") != 2 or deliberation_policy.get("contributions_per_specialist_per_round") != {"min": 1, "max": 2}:
+        errors.append("deliberation must be limited to two rounds and one or two contributions per specialist")
+    if deliberation_policy.get("max_evidence_or_experiment_cycles") != 1 or deliberation_policy.get("max_material_human_decisions") != 1:
+        errors.append("deliberation evidence and human resolution must each be limited to one cycle")
+    if deliberation_policy.get("decision_rule") != "requirements_and_evidence_not_majority_vote":
+        errors.append("deliberation must never use majority vote")
+    if deliberation_policy.get("valid_objection") != "violated_requirement_or_missing_evidence_not_taste_alone":
+        errors.append("deliberation objections must cite a requirement or missing evidence")
+    if deliberation_policy.get("factual_uncertainty") != "inspection_prototype_or_experiment_not_more_debate":
+        errors.append("factual disagreement must route to evidence rather than more debate")
+    if deliberation_policy.get("subjective_choice") != "one_codex_picker_question":
+        errors.append("irreducibly subjective deliberation choices must use one Codex picker question")
+    if deliberation_policy.get("round_exhaustion") != "cheapest_reversible_experiment_or_block_with_dissent":
+        errors.append("deliberation round exhaustion must experiment cheaply or block with dissent")
+    if deliberation_policy.get("hard_invariants") != "immutable_and_not_debatable" or deliberation_policy.get("release_gate_override") is not False:
+        errors.append("deliberation cannot waive hard, release, authority, or verification guards")
+    if deliberation_policy.get("mission_anchor") != "preserved" or deliberation_policy.get("transition_authority") != "controller_only":
+        errors.append("deliberation must preserve the mission while the controller alone owns transitions")
+    if deliberation_policy.get("return_contract") != "exact_invoking_run_mission_node_input_digest_and_profile_version":
+        errors.append("deliberation must bind and return to the exact invoking run, mission, node, input, and profile version")
+    if deliberation_policy.get("canonical_state") != "typed_deliberation_artifacts":
+        errors.append("deliberation state must be preserved in canonical typed artifacts")
+    if deliberation_policy.get("upstream_change") != "invalidate_affected_artifacts_and_return_to_owning_stage_normally":
+        errors.append("deliberation changes must invalidate upstream artifacts through normal graph ownership")
+    if deliberation_policy.get("post_acceptance_write") != "one_serialized_implementation_writer":
+        errors.append("deliberation acceptance must still allow only one implementation writer")
+    if deliberation_policy.get("parallel_post_acceptance") != "read_only_review_and_qa_against_frozen_inputs":
+        errors.append("parallel post-deliberation review and QA must stay read-only on frozen inputs")
+
     autonomy_policy = policies.get("autonomy")
     if not isinstance(autonomy_policy, dict):
         errors.append("autonomy policy must be an object")
@@ -279,6 +340,16 @@ def validate(graph: dict[str, Any]) -> list[str]:
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
     required_policy_assertions = {
+        "deliberation_preserves_peer_discussion_and_caller": {
+            "closed_profile_registry", "same_subgraph_for_distinct_callers",
+            "reviewer_role_reused_with_profile_lenses", "every_specialist_execution_uses_luna_max",
+            "all_specialists_share_one_frozen_request", "first_round_has_no_final_proposal",
+            "peers_receive_and_respond_to_each_other", "typed_contributions_are_auditable",
+            "no_majority_vote", "valid_objections_route_to_revision_evidence_or_user",
+            "two_round_budget", "one_evidence_cycle_budget", "one_material_human_decision_budget",
+            "dissent_preserved", "controller_alone_advances", "exact_mission_caller_and_input_binding",
+            "hard_guards_not_debatable", "one_writer_after_acceptance",
+        },
         "annotation_batch_preserves_coverage_and_tasks": {
             "every_annotation_covered", "duplicates_do_not_create_tasks", "unknown_values_not_guessed",
             "one_canonical_task_per_problem", "clear_problems_start_without_reconfirmation",
@@ -297,7 +368,7 @@ def validate(graph: dict[str, Any]) -> list[str]:
         },
     }
     if set(policy_traces) != set(required_policy_assertions):
-        errors.append("policy traces must cover annotation batches, authorized and unauthorized side quests, and aligned release autonomy")
+        errors.append("policy traces must cover generic deliberation, annotation batches, side quests, and aligned release autonomy")
     for trace_id, required_assertions in required_policy_assertions.items():
         trace = policy_traces.get(trace_id, {})
         if not isinstance(trace.get("events"), list) or not trace.get("events"):
@@ -315,6 +386,40 @@ def validate(graph: dict[str, Any]) -> list[str]:
     }
     if not required_delegation_fields <= delegation_fields:
         errors.append("delegation_receipt must bind the bounded task, selected runtime, result, evidence, and controller validation")
+
+    required_deliberation_evidence_fields = {
+        "deliberation_request": {
+            "request_id", "invoking_run_id", "mission_anchor_digest", "invoking_node_id", "decision_question", "deliberation_reason",
+            "profile_id", "profile_version", "frozen_input_refs", "input_digest", "participant_roster",
+            "specialist_lenses", "model", "reasoning_effort", "acceptance_criteria", "hard_invariants",
+            "round_budget", "contribution_budget", "authority_envelope_ref", "expected_return_evidence",
+            "return_node_id", "return_contract", "issuer", "created_at",
+        },
+        "deliberation_round": {
+            "request_id", "invoking_run_id", "invoking_node_id", "input_digest", "profile_id", "profile_version",
+            "round_number", "phase", "participant_roster", "delegation_envelopes", "delegation_receipts",
+            "contributions", "broadcasts", "named_questions", "responses", "objections", "position_changes",
+            "controller_validation", "created_at",
+        },
+        "deliberation_joint_proposal": {
+            "request_id", "input_digest", "profile_id", "profile_version", "round_number", "owner_lens",
+            "owner_delegation_envelope", "owner_delegation_receipt", "proposal_digest", "proposal", "acceptance_mapping",
+            "hard_invariant_check", "evidence_refs", "retained_concerns", "created_at",
+        },
+        "deliberation_consent_receipt": {
+            "request_id", "proposal_digest", "profile_id", "profile_version", "specialist_responses",
+            "allowed_values", "objections", "concerns", "delegation_envelopes", "delegation_receipts", "created_at",
+        },
+        "deliberation_return_receipt": {
+            "request_id", "invoking_run_id", "mission_anchor_digest", "invoking_node_id", "input_digest", "profile_id", "profile_version",
+            "accepted_proposal_ref", "disposition", "controller_validation", "dissent", "hard_invariant_check",
+            "invalidated_artifacts", "evidence_refs", "return_node_id", "returned_at",
+        },
+    }
+    for evidence_id, required_fields in required_deliberation_evidence_fields.items():
+        actual_fields = set(evidence.get(evidence_id, {}).get("required_fields", []))
+        if not required_fields <= actual_fields:
+            errors.append(f"{evidence_id} is missing required deliberation fields")
 
     annotation_ledger_fields = set(evidence.get("annotation_problem_ledger", {}).get("required_fields", []))
     required_annotation_ledger_fields = {
@@ -640,6 +745,218 @@ def validate(graph: dict[str, Any]) -> list[str]:
     decision_hosts = set(dynamic_templates.get("prebuild_material_decision", {}).get("allowed_hosts", []))
     if not {"structure_annotation_batch", "clarify_annotation_problem"} <= decision_hosts:
         errors.append("annotation intake and clarification must host bounded material decisions")
+
+    required_profile_ids = {
+        "design", "product_domain", "specification", "engineering", "review_adjudication", "qa_triage",
+        "learning_retro",
+    }
+    if set(deliberation_profiles) != required_profile_ids:
+        errors.append("the deliberation profile registry must contain exactly the seven justified profiles")
+    profile_callers: set[str] = set()
+    for profile_id, profile in deliberation_profiles.items():
+        if not isinstance(profile.get("version"), str) or not profile["version"].strip():
+            errors.append(f"deliberation profile {profile_id} needs a version")
+        for field in ("purpose", "acceptance_focus"):
+            if not profile.get(field):
+                errors.append(f"deliberation profile {profile_id} needs {field}")
+        lenses = profile.get("lenses")
+        if not isinstance(lenses, list) or len(lenses) != 3 or len(set(lenses)) != 3:
+            errors.append(f"deliberation profile {profile_id} must define exactly three distinct lenses")
+        callers = profile.get("eligible_callers")
+        if not isinstance(callers, list) or not callers:
+            errors.append(f"deliberation profile {profile_id} needs eligible callers")
+            callers = []
+        for caller in callers:
+            if caller not in nodes:
+                errors.append(f"deliberation profile {profile_id} names unknown caller: {caller}")
+            profile_callers.add(caller)
+
+    if set(dynamic_subgraphs) != {"bounded_peer_deliberation"}:
+        errors.append("the graph must expose one reusable bounded_peer_deliberation subgraph")
+    deliberation = dynamic_subgraphs.get("bounded_peer_deliberation", {})
+    if deliberation.get("kind") != "call_return_subgraph" or deliberation.get("profile_registry_ref") != "deliberation_profiles":
+        errors.append("bounded_peer_deliberation must use the profile registry through a call-return contract")
+    allowed_hosts = set(deliberation.get("allowed_hosts", []))
+    if allowed_hosts != profile_callers:
+        errors.append("deliberation allowed hosts must equal the closed profile caller registry")
+    if {"run_required_checks", "prepare_release", "ship_change", "land_and_deploy_change"} & allowed_hosts:
+        errors.append("routine checks and release executors must not invoke deliberation")
+    invocation = deliberation.get("invocation", {})
+    if invocation != {
+        "guard": "material_competing_judgment_unresolved",
+        "request_evidence": "deliberation_request",
+        "suspend_invoking_node": True,
+        "max_active_per_invoking_node": 1,
+    }:
+        errors.append("deliberation invocation must freeze one request and suspend exactly one eligible caller")
+    if deliberation.get("executor") != {"kind": "controller", "id": "deliberation_controller"}:
+        errors.append("the controller must own the reusable deliberation subgraph")
+    specialist_execution = deliberation.get("specialist_execution", {})
+    if specialist_execution != {
+        "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max",
+        "fresh_thread": True, "envelope_and_receipt_required": True,
+    }:
+        errors.append("every deliberation specialist execution must be a fresh Luna/max reviewer with envelope and receipt")
+
+    subnodes = _indexed(deliberation.get("nodes"), "deliberation node", errors)
+    subedges = _indexed(deliberation.get("edges"), "deliberation edge", errors)
+    required_subnodes = {
+        "prepare_deliberation", "observe_independently", "discuss_with_peers", "draft_joint_proposal",
+        "check_deliberation_consent", "validate_deliberation", "resolve_deliberation_evidence",
+        "ask_material_human_decision", "return_to_invoking_node",
+    }
+    if set(subnodes) != required_subnodes:
+        errors.append("the reusable deliberation subgraph lifecycle is incomplete or duplicated")
+    if set(nodes) & set(subnodes):
+        errors.append("deliberation internal nodes must not be copied into the parent lifecycle")
+    sub_outgoing: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    allowed_subedge_types = {"advance", "decision", "revision", "recovery", "return"}
+    for edge_id, edge in subedges.items():
+        if edge.get("from") not in subnodes or edge.get("to") not in subnodes:
+            errors.append(f"deliberation edge {edge_id} must stay inside the subgraph")
+        else:
+            sub_outgoing[edge["from"]].append(edge)
+        if edge.get("type") not in allowed_subedge_types:
+            errors.append(f"deliberation edge {edge_id} has invalid type")
+        if edge.get("type") in {"revision", "recovery"} and not edge.get("budget"):
+            errors.append(f"deliberation edge {edge_id} needs a budget")
+    if sub_outgoing.get("return_to_invoking_node"):
+        errors.append("the deliberation return node must not select a parent downstream edge")
+    for node_id in ("observe_independently", "discuss_with_peers", "draft_joint_proposal", "check_deliberation_consent"):
+        delegation = subnodes.get(node_id, {}).get("delegation", {})
+        if delegation.get("role_id") != "reviewer" or delegation.get("required_model") != "gpt-5.6-luna" or delegation.get("required_reasoning_effort") != "max":
+            errors.append(f"deliberation node {node_id} must use the Luna/max reviewer role")
+        if delegation.get("parallelism") != "read_only" or delegation.get("write_policy") != "none":
+            errors.append(f"deliberation node {node_id} must stay read-only")
+    evidence_node = subnodes.get("resolve_deliberation_evidence", {}).get("delegation", {})
+    if set(evidence_node.get("role_ids", [])) != {"explorer", "qa_tester"} or evidence_node.get("required_model") != "gpt-5.6-luna" or evidence_node.get("required_reasoning_effort") != "max":
+        errors.append("deliberation evidence work must use bounded Luna/max explorer or QA specialists")
+    if subnodes.get("ask_material_human_decision", {}).get("executor") != {"kind": "human", "id": "codex_picker"}:
+        errors.append("material deliberation choices must use the Codex picker")
+    for node_id, node in subnodes.items():
+        completion = node.get("completion", {})
+        if not isinstance(completion, dict) or not completion.get("predicate"):
+            errors.append(f"deliberation node {node_id} needs a completion predicate")
+        for evidence_id in completion.get("evidence", []):
+            if evidence_id not in evidence:
+                errors.append(f"deliberation node {node_id} names unknown evidence: {evidence_id}")
+
+    subtable = deliberation.get("outcome_table", {})
+    required_dispositions = {
+        "accepted", "revision_required", "evidence_or_experiment_required",
+        "material_human_decision_required", "blocked", "fatal",
+    }
+    if subtable.get("node") != "validate_deliberation" or set(subtable.get("domain", [])) != required_dispositions:
+        errors.append("deliberation validation must classify the complete closed disposition set")
+    table_cases = subtable.get("cases", [])
+    if {case.get("value") for case in table_cases if isinstance(case, dict)} != required_dispositions:
+        errors.append("deliberation outcome cases must cover every disposition exactly")
+    if {case.get("edge") for case in table_cases if isinstance(case, dict)} != {edge.get("id") for edge in sub_outgoing.get("validate_deliberation", [])}:
+        errors.append("deliberation outcome cases must cover every validator edge exactly")
+    revision_edge = subedges.get("deliberation_revision_to_discussion", {})
+    if revision_edge.get("budget") != "deliberation_discussion_rounds" or revision_edge.get("to") != "discuss_with_peers":
+        errors.append("deliberation revision must return to peer discussion through its round budget")
+    evidence_edge = subedges.get("deliberation_evidence_to_resolution", {})
+    if evidence_edge.get("budget") != "deliberation_evidence_resolution" or evidence_edge.get("to") != "resolve_deliberation_evidence":
+        errors.append("factual disagreement must route through bounded evidence resolution")
+    human_edge = subedges.get("deliberation_human_to_decision", {})
+    if human_edge.get("budget") != "deliberation_material_human_decisions" or human_edge.get("to") != "ask_material_human_decision":
+        errors.append("material human deliberation decisions must have a one-question budget")
+    lifecycle = deliberation.get("lifecycle", {})
+    required_lifecycle = {
+        "instance_id": "request_id", "suspend_invoking_node": True, "resume_exact_invoking_node": True,
+        "return_node_from_request": True, "bind_invoking_run_id": True, "bind_mission_anchor_digest": True,
+        "bind_input_digest": True,
+        "bind_profile_version": True, "bind_resolution_receipts_to_request": True,
+        "accepted_proposal_required_for_accept": True,
+        "may_select_parent_downstream_edge": False, "max_active_per_invoking_node": 1,
+        "upstream_change_handling": "invalidate_affected_artifacts_then_return_to_caller",
+    }
+    if lifecycle != required_lifecycle:
+        errors.append("deliberation lifecycle must bind and resume the exact caller without choosing parent edges")
+    required_hard_guards = {
+        "hard_safety", "data_truth", "tenant_and_security", "release_authority", "required_verification",
+        "failed_ship_or_deploy_gate",
+    }
+    if set(deliberation.get("non_debatable_guards", [])) != required_hard_guards:
+        errors.append("deliberation must preserve every hard safety, data, authority, release, and verification guard")
+    definitions = deliberation.get("predicate_definitions", {})
+    if not isinstance(definitions, dict) or not definitions or not all(isinstance(value, str) and value.strip() for value in definitions.values()):
+        errors.append("every deliberation predicate needs an explicit truth-condition definition")
+
+    deliberation_traces_raw = graph.get("deliberation_trace_scenarios")
+    if not isinstance(deliberation_traces_raw, list):
+        errors.append("deliberation_trace_scenarios must be a list")
+        deliberation_traces_raw = []
+    deliberation_traces = {
+        trace.get("id"): trace
+        for trace in deliberation_traces_raw
+        if isinstance(trace, dict) and isinstance(trace.get("id"), str)
+    }
+    required_deliberation_traces = {
+        "design_profile_returns_to_exact_caller",
+        "engineering_profile_returns_to_exact_caller",
+        "objection_routes_through_revision_evidence_and_human_gate",
+        "routine_deterministic_node_skips_deliberation",
+        "hard_gate_cannot_be_debated_away",
+    }
+    if set(deliberation_traces) != required_deliberation_traces:
+        errors.append("deliberation traces must cover two callers, objections, routine skip, and hard-gate preservation")
+    subtable_cases = {
+        case.get("value"): case
+        for case in table_cases
+        if isinstance(case, dict) and isinstance(case.get("value"), str)
+    }
+    for trace_id, trace in deliberation_traces.items():
+        caller = trace.get("invoking_node_id")
+        if caller not in nodes:
+            errors.append(f"deliberation trace {trace_id} names unknown caller: {caller}")
+        if trace.get("template") != "bounded_peer_deliberation":
+            errors.append(f"deliberation trace {trace_id} must use the shared template")
+        if trace.get("return_node_id") != caller or trace.get("return_input_digest") != trace.get("input_digest"):
+            errors.append(f"deliberation trace {trace_id} must return to the exact caller and input digest")
+        steps = trace.get("steps")
+        if trace.get("invoked") is False:
+            if steps != [] or trace.get("ends_at") != caller:
+                errors.append(f"routine deliberation trace {trace_id} must skip without leaving its caller")
+            continue
+        profile = deliberation_profiles.get(trace.get("profile_id"), {})
+        if caller not in profile.get("eligible_callers", []):
+            errors.append(f"deliberation trace {trace_id} uses an ineligible caller/profile pair")
+        if trace.get("profile_version") != profile.get("version"):
+            errors.append(f"deliberation trace {trace_id} must bind the selected profile version")
+        if not isinstance(steps, list) or not steps:
+            errors.append(f"deliberation trace {trace_id} needs internal steps")
+            continue
+        current = "prepare_deliberation"
+        for step_index, step in enumerate(steps):
+            if not isinstance(step, dict) or step.get("node") != current:
+                errors.append(f"deliberation trace {trace_id} step {step_index} expected node {current}")
+                break
+            edge = subedges.get(step.get("edge"))
+            if edge is None or edge.get("from") != current:
+                errors.append(f"deliberation trace {trace_id} step {step_index} has invalid edge")
+                break
+            if current == "validate_deliberation":
+                case = subtable_cases.get(step.get("outcome"))
+                if not case or case.get("edge") != edge.get("id"):
+                    errors.append(f"deliberation trace {trace_id} step {step_index} does not match the closed outcome table")
+                    break
+            current = edge.get("to")
+        if trace.get("ends_at") != current:
+            errors.append(f"deliberation trace {trace_id} ends at {current}, not {trace.get('ends_at')}")
+    distinct_invocations = {
+        (trace.get("invoking_node_id"), trace.get("profile_id"))
+        for trace in deliberation_traces.values()
+        if trace.get("invoked") is True
+    }
+    if len(distinct_invocations) < 2:
+        errors.append("at least two distinct caller/profile pairs must prove reuse of the same deliberation subgraph")
+    hard_trace = deliberation_traces.get("hard_gate_cannot_be_debated_away", {})
+    if not {"failed_required_gate_preserved", "authority_not_expanded", "fatal_return", "exact_caller_return"} <= set(hard_trace.get("assertions", [])):
+        errors.append("the hard-gate trace must prove deliberation cannot waive failure or authority")
+    if nodes.get("deliver_slice", {}).get("delegation", {}).get("parallelism") != "serialized":
+        errors.append("only one implementation writer may run after deliberation acceptance")
 
     slice_receipt = evidence.get("slice_delivery_receipt", {})
     slice_fields = set(slice_receipt.get("required_fields", [])) if isinstance(slice_receipt, dict) else set()
@@ -1024,6 +1341,14 @@ def self_test(graph: dict[str, Any]) -> tuple[list[str], int]:
     next(item for item in incomplete_mission_anchor["evidence_types"] if item["id"] == "route_card")["required_fields"].remove("primary_outcome")
     cases.append(("incomplete mission anchor", incomplete_mission_anchor, "bind the complete mission anchor"))
 
+    unbound_verification_receipt = copy.deepcopy(graph)
+    next(item for item in unbound_verification_receipt["evidence_types"] if item["id"] == "verification_receipt")["required_fields"].remove("receipt_id")
+    cases.append(("unbound verification receipt", unbound_verification_receipt, "stable receipt_id"))
+
+    unbound_join_receipt = copy.deepcopy(graph)
+    next(item for item in unbound_join_receipt["evidence_types"] if item["id"] == "join_receipt")["required_fields"].remove("branch_receipt_ids")
+    cases.append(("unbound join receipt", unbound_join_receipt, "exact branch receipt IDs"))
+
     untyped_alignment_lock = copy.deepcopy(graph)
     next(node for node in untyped_alignment_lock["nodes"] if node["id"] == "align_product")["completion"] = {
         "predicate": "current_artifact_recorded", "evidence": ["artifact_receipt"]
@@ -1049,6 +1374,59 @@ def self_test(graph: dict[str, Any]) -> tuple[list[str], int]:
     recursive_annotation_child = copy.deepcopy(graph)
     recursive_annotation_child["policies"]["annotation_batch"]["child_input"] = "full_annotation_batch"
     cases.append(("recursive annotation child", recursive_annotation_child, "must receive one ledger problem"))
+
+    wrong_deliberation_model = copy.deepcopy(graph)
+    wrong_deliberation_model["dynamic_subgraph_templates"][0]["specialist_execution"]["model"] = "gpt-5.6-terra"
+    cases.append(("wrong deliberation model", wrong_deliberation_model, "fresh Luna/max reviewer"))
+
+    wrong_deliberation_effort = copy.deepcopy(graph)
+    wrong_deliberation_effort["policies"]["deliberation"]["specialist_reasoning_effort"] = "high"
+    cases.append(("wrong deliberation effort", wrong_deliberation_effort, "must use max reasoning effort"))
+
+    deliberation_without_peer_exchange = copy.deepcopy(graph)
+    deliberation_without_peer_exchange["policies"]["deliberation"]["peer_exchange"] = "independent_reports_only"
+    cases.append(("deliberation without peer exchange", deliberation_without_peer_exchange, "lossless statements"))
+
+    deliberation_majority_vote = copy.deepcopy(graph)
+    deliberation_majority_vote["policies"]["deliberation"]["decision_rule"] = "majority_vote"
+    cases.append(("deliberation majority vote", deliberation_majority_vote, "must never use majority vote"))
+
+    unbounded_deliberation_rounds = copy.deepcopy(graph)
+    unbounded_deliberation_rounds["policies"]["deliberation"]["max_discussion_rounds"] = 3
+    cases.append(("unbounded deliberation rounds", unbounded_deliberation_rounds, "limited to two rounds"))
+
+    deliberation_wrong_return = copy.deepcopy(graph)
+    deliberation_wrong_return["dynamic_subgraph_templates"][0]["lifecycle"]["resume_exact_invoking_node"] = False
+    cases.append(("deliberation wrong return", deliberation_wrong_return, "exact caller"))
+
+    deliberation_without_mission_binding = copy.deepcopy(graph)
+    deliberation_without_mission_binding["dynamic_subgraph_templates"][0]["lifecycle"]["bind_mission_anchor_digest"] = False
+    cases.append(("deliberation without mission binding", deliberation_without_mission_binding, "exact caller"))
+
+    unbounded_deliberation_evidence = copy.deepcopy(graph)
+    unbounded_deliberation_evidence["policies"]["deliberation"]["max_evidence_or_experiment_cycles"] = 2
+    cases.append(("unbounded deliberation evidence", unbounded_deliberation_evidence, "limited to one cycle"))
+
+    unbounded_deliberation_human_gate = copy.deepcopy(graph)
+    next(item for item in unbounded_deliberation_human_gate["dynamic_subgraph_templates"][0]["edges"] if item["id"] == "deliberation_human_to_decision").pop("budget")
+    cases.append(("unbounded deliberation human gate", unbounded_deliberation_human_gate, "one-question budget"))
+
+    deliberation_without_broadcast_evidence = copy.deepcopy(graph)
+    next(item for item in deliberation_without_broadcast_evidence["evidence_types"] if item["id"] == "deliberation_round")["required_fields"].remove("broadcasts")
+    cases.append(("deliberation without broadcast evidence", deliberation_without_broadcast_evidence, "missing required deliberation fields"))
+
+    routine_node_can_deliberate = copy.deepcopy(graph)
+    routine_node_can_deliberate["dynamic_subgraph_templates"][0]["allowed_hosts"].append("run_required_checks")
+    cases.append(("routine node can deliberate", routine_node_can_deliberate, "allowed hosts must equal"))
+
+    deliberation_waives_hard_gate = copy.deepcopy(graph)
+    deliberation_waives_hard_gate["policies"]["deliberation"]["release_gate_override"] = True
+    cases.append(("deliberation waives hard gate", deliberation_waives_hard_gate, "cannot waive hard"))
+
+    duplicated_profile_graph = copy.deepcopy(graph)
+    duplicated_profile_graph["dynamic_subgraph_templates"].append(copy.deepcopy(duplicated_profile_graph["dynamic_subgraph_templates"][0]))
+    duplicated_profile_graph["dynamic_subgraph_templates"][1]["id"] = "design_only_deliberation"
+    cases.append(("duplicated profile graph", duplicated_profile_graph, "one reusable bounded_peer_deliberation"))
 
     for name, candidate, expected in cases:
         errors = validate(candidate)

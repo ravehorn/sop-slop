@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "forward_test": {
-    "run_id": "sop-slop-public-forward-0.4.0",
-    "graph_version": "0.4.0",
+    "run_id": "sop-slop-public-forward-0.5.0",
+    "graph_version": "0.5.0",
     "mode": "evolution",
     "lane": "product-change",
     "tier": "T2",
@@ -21,22 +21,23 @@
     ],
     "planned_slice_ids": [],
     "observed_transitions": [
-      {"from": "intake_run", "to": "structure_annotation_batch"},
-      {"from": "structure_annotation_batch", "to": "materialize_annotation_tasks"},
-      {"from": "materialize_annotation_tasks", "to": "select_next_annotation_problem"},
-      {"from": "select_next_annotation_problem", "to": "execute_annotation_problem"},
-      {"from": "execute_annotation_problem", "to": "select_next_annotation_problem"},
-      {"from": "select_next_annotation_problem", "to": "execute_annotation_problem"},
-      {"from": "execute_annotation_problem", "to": "select_next_annotation_problem"},
-      {"from": "select_next_annotation_problem", "to": "record_run_receipt"},
-      {"from": "record_run_receipt", "to": "review_run"},
-      {"from": "review_run", "to": "run_completed"}
+      {"from": "intake_run", "to": "structure_annotation_batch", "edge_id": "intake_to_annotations", "outcome": "annotation_batch"},
+      {"from": "structure_annotation_batch", "to": "materialize_annotation_tasks", "edge_id": "annotations_to_tasks", "outcome": "problems_identified"},
+      {"from": "materialize_annotation_tasks", "to": "select_next_annotation_problem", "edge_id": "annotation_tasks_to_selector", "outcome": "tasks_recorded"},
+      {"from": "select_next_annotation_problem", "to": "execute_annotation_problem", "edge_id": "annotation_selector_to_problem", "outcome": "ready_problem"},
+      {"from": "execute_annotation_problem", "to": "select_next_annotation_problem", "edge_id": "annotation_problem_to_selector"},
+      {"from": "select_next_annotation_problem", "to": "execute_annotation_problem", "edge_id": "annotation_selector_to_problem", "outcome": "ready_problem"},
+      {"from": "execute_annotation_problem", "to": "select_next_annotation_problem", "edge_id": "annotation_problem_to_selector"},
+      {"from": "select_next_annotation_problem", "to": "record_run_receipt", "edge_id": "annotation_selector_completed_to_receipt", "outcome": "completed"},
+      {"from": "record_run_receipt", "to": "review_run", "edge_id": "receipt_to_review"},
+      {"from": "review_run", "to": "run_completed", "edge_id": "review_to_completed", "outcome": "completed"}
     ],
     "delegations": [],
     "evidence": {
       "route_card": [
         {
-          "graph_version": "0.4.0",
+          "run_id": "sop-slop-public-forward-0.5.0",
+          "graph_version": "0.5.0",
           "lane": "product-change",
           "tier": "T2",
           "primary_outcome": "Resolve three product annotations as two underlying problems and verify both in production.",
@@ -55,7 +56,7 @@
         {
           "allowed_actions": ["read fixture", "create or reuse canonical tasks", "run bounded child delivery", "verify production"],
           "forbidden_actions": ["destructive data changes", "create duplicate tracker"],
-          "resources": ["sop-slop/references/forward-test-fixture-0.4.0.json"],
+          "resources": ["sop-slop/references/forward-test-fixture-0.5.0.json"],
           "environments": ["local synthetic test"],
           "limits": {"accepted_problems": 2, "active_writers": 1},
           "expires_at": "2099-01-01T00:00:00Z"
@@ -63,7 +64,7 @@
       ],
       "annotation_problem_ledger": [
         {
-          "batch_id": "annotation-batch-forward-0.4.0",
+          "batch_id": "annotation-batch-forward-0.5.0",
           "primary_mission": "Resolve the supplied product annotations without duplicating work.",
           "source_revision": "synthetic-ui-revision-1",
           "annotation_ids": ["A01", "A02", "A03"],
@@ -89,12 +90,12 @@
       ],
       "annotation_task_receipt": [
         {
-          "batch_id": "annotation-batch-forward-0.4.0",
+          "batch_id": "annotation-batch-forward-0.5.0",
           "problem_id": "P01",
           "task_system": "canonical-synthetic-list",
           "task_id": "TASK-101",
           "canonical_uri": "task://TASK-101",
-          "idempotency_key": "annotation-batch-forward-0.4.0:P01",
+          "idempotency_key": "annotation-batch-forward-0.5.0:P01",
           "action": "created_and_synchronized",
           "previous_status": "ready",
           "new_status": "completed",
@@ -103,12 +104,12 @@
           "created_at": "2026-01-01T00:00:05Z"
         },
         {
-          "batch_id": "annotation-batch-forward-0.4.0",
+          "batch_id": "annotation-batch-forward-0.5.0",
           "problem_id": "P02",
           "task_system": "canonical-synthetic-list",
           "task_id": "TASK-102",
           "canonical_uri": "task://TASK-102",
-          "idempotency_key": "annotation-batch-forward-0.4.0:P02",
+          "idempotency_key": "annotation-batch-forward-0.5.0:P02",
           "action": "created_and_synchronized",
           "previous_status": "ready",
           "new_status": "completed",
@@ -119,7 +120,7 @@
       ],
       "annotation_problem_run_receipt": [
         {
-          "batch_id": "annotation-batch-forward-0.4.0",
+          "batch_id": "annotation-batch-forward-0.5.0",
           "problem_id": "P01",
           "annotation_ids": ["A01", "A02"],
           "child_run_id": "annotation-problem-run:P01",
@@ -131,7 +132,7 @@
           "closed_at": "2026-01-01T00:00:05Z"
         },
         {
-          "batch_id": "annotation-batch-forward-0.4.0",
+          "batch_id": "annotation-batch-forward-0.5.0",
           "problem_id": "P02",
           "annotation_ids": ["A03"],
           "child_run_id": "annotation-problem-run:P02",
@@ -145,12 +146,12 @@
       ],
       "run_receipt": [
         {
-          "run_id": "sop-slop-public-forward-0.4.0",
-          "graph_version": "0.4.0",
+          "run_id": "sop-slop-public-forward-0.5.0",
+          "graph_version": "0.5.0",
           "status": "completed",
           "decisions": [],
           "transitions": ["intake_run->structure_annotation_batch", "structure_annotation_batch->materialize_annotation_tasks", "materialize_annotation_tasks->select_next_annotation_problem", "select_next_annotation_problem->execute_annotation_problem", "execute_annotation_problem->select_next_annotation_problem", "select_next_annotation_problem->record_run_receipt", "record_run_receipt->review_run"],
-          "evidence_refs": ["annotation_problem_ledger:annotation-batch-forward-0.4.0", "annotation_problem_run_receipt:P01", "annotation_problem_run_receipt:P02", "annotation_task_receipt:TASK-101", "annotation_task_receipt:TASK-102"],
+          "evidence_refs": ["annotation_problem_ledger:annotation-batch-forward-0.5.0", "annotation_problem_run_receipt:P01", "annotation_problem_run_receipt:P02", "annotation_task_receipt:TASK-101", "annotation_task_receipt:TASK-102"],
           "authority_use": ["canonical task writes", "bounded child delivery"],
           "started_at": "2026-01-01T00:00:00Z",
           "closed_at": "2026-01-01T00:00:09Z"
@@ -158,8 +159,8 @@
       ],
       "run_review_receipt": [
         {
-          "run_id": "sop-slop-public-forward-0.4.0",
-          "graph_version": "0.4.0",
+          "run_id": "sop-slop-public-forward-0.5.0",
+          "graph_version": "0.5.0",
           "review_status": "completed",
           "delivery_status": "completed",
           "effective_status": "completed",

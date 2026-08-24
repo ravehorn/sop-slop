@@ -12,6 +12,7 @@ It is designed for substantial features, product-domain changes, and end-to-end 
 - moves unrelated side quests into linked tasks when authorized, without pivoting the parent run
 - records an alignment lock before transferring reversible technical and version decisions to the controller
 - treats nested skill finals as stage evidence rather than permission to stop
+- lets eligible product, design, engineering, review, QA, and learning stages call one bounded peer-deliberation protocol and return to the exact caller
 - continues an explicitly authorized full-delivery run through production verification
 - records a run receipt and automatic review before closure
 
@@ -71,7 +72,7 @@ Release and linked-task authority still come from the request and repository rul
 ./scripts/verify-package.sh
 ```
 
-The check validates the skill, graph policy, 45 negative contract cases, an annotation-batch forward run, synthetic closure, default and all-Matt install plans, gstack origin enforcement, rerun routing, and non-git/wrong-remote refusal without downloading dependencies.
+The check validates the skill, graph policy, 60 negative graph cases, 23 adversarial deliberation receipts, annotation-batch and two-profile deliberation forward runs, synthetic closure, default and all-Matt install plans, gstack origin enforcement, rerun routing, and non-git/wrong-remote refusal without downloading dependencies.
 
 ## Upstream projects
 

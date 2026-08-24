@@ -46,6 +46,18 @@ frozen candidate digest
 Any changed candidate digest makes all three branch receipts stale.
 ```
 
+Material competing judgment may temporarily call one reusable peer protocol without changing the lifecycle graph:
+
+```text
+eligible caller + frozen request
+              |
+              v
+ bounded_peer_deliberation(profile)
+ observe -> discuss -> revise? -> joint proposal -> consent -> controller validation
+              |
+              +---- exact typed return to the same run and caller
+```
+
 ## User stories
 
 1. As the operator, I want material choices presented one at a time with a recommendation, so that I can align the system without answering a questionnaire.
@@ -61,6 +73,7 @@ Any changed candidate digest makes all three branch receipts stale.
 11. As the operator, I want an explicit implementation-through-production request to reach verified production by default, so that local completion and nested skill endings cannot silently shorten the mission.
 12. As the operator, I want a large annotation batch reduced to its real underlying problems, so that repeated observations strengthen one diagnosis instead of creating duplicate work.
 13. As the operator, I want every accepted annotation problem to exist in the canonical general task list and be checked off only from validated delivery evidence, so that work remains durable outside the conversation.
+14. As the operator, I want material product, design, engineering, review, QA, or learning judgments challenged by specialists who respond to one another, so that the result reflects real peer influence without creating a second controller or losing the parent mission.
 
 ## Core decisions
 
@@ -69,13 +82,19 @@ Any changed candidate digest makes all three branch receipts stale.
 - Each accepted annotation problem receives exactly one idempotent durable task in the workspace's canonical general task list. Equivalent tasks are reused; duplicate annotations remain supporting evidence.
 - Clear annotation problems start without reconfirmation. Only the affected ambiguous problem pauses for one inspect-first `/grill-me` decision at a time unless its dependency blocks the whole batch.
 - Annotation problems execute sequentially as linked child SOP SLOP runs. The parent ledger and canonical task status update only after the controller validates each child receipt.
-- The route card binds a mission anchor: requested outcome and proof, non-goals, current node, requested completion, and authority source. Later messages cannot silently replace it.
+- Exactly one route card is bound to the run and anchors requested outcome and proof, non-goals, current node, requested completion, and authority source. Competing cards or later messages cannot silently replace it.
 - Every new in-run request is classified as a required continuation/dependency, an explicit mission replacement, or a side quest. Side quests become linked Codex tasks and the parent resumes the same node; parent release authority does not transfer.
 - The graph is hierarchical: a stable lifecycle graph contains bounded lane or alignment subgraphs.
 - Only the named pre-build alignment and review hosts may instantiate the `prebuild_material_decision` child template. It suspends and resumes the same host, permits one active child, and requires a complete decision receipt. Lifecycle, implementation, and release topology stays static and versioned.
+- One versioned `bounded_peer_deliberation` call/return template serves every allowlisted caller/profile pair. Design Council is only the `design` profile; profiles are data, not duplicated graphs.
+- Deliberation is optional and requires material competing judgment unresolved by canonical evidence or an established pattern. Routine or deterministic decisions skip it.
+- A deliberation request freezes the caller, run, stable mission-anchor digest, question, SHA-256 digest of canonical input references, profile version, roster, Luna/max runtime, acceptance criteria, hard invariants, budgets, authority, expected evidence, and exact return contract.
+- Specialists observe independently, receive peers' lossless typed statements, answer named questions, expose claims and objections, revise within two rounds, and consent to one content-digested joint proposal without majority voting. Evidence/experiment resolution and a material-human picker are each limited to one cycle. Minority concerns remain auditable.
+- The controller alone validates one closed deliberation disposition and returns to the exact caller. The child cannot choose a parent edge, change the mission, or debate away hard safety, truth, tenant/security, release, or verification guards.
 - Guards are named pure predicates. Unknown or unevaluable means blocked plus a proposed unblocker; it never means false-by-default.
 - Every ordinary branching stage classifies exactly one value from a closed outcome table. Each value maps to one guard and one edge; missing or multiple values are invalid. Explicit forks are the only multi-edge dispatch.
 - Ordinary branching is XOR. Parallel work uses explicit forks and `all_dispatched` joins only for read-only work against a frozen revision or isolated writers with leases.
+- Candidate joins bind the exact fork, subject, branch receipt IDs, and receipt snapshot they validated; candidate-resolution transitions name that exact join. Later or unbound evidence cannot retroactively turn a failed gate into acceptance.
 - Revision, retry, and recovery edges have named budgets supplied by the authority envelope. Budget exhaustion blocks the run.
 - Completion evidence is typed, inspectable, and bound to the subject it proves. A slice receipt binds slice ID, approved plan digest, and delivered commit; only the assembled candidate gate binds the frozen combined revision.
 - A changed dependency makes evidence stale without deleting it. Only affected downstream stages reopen.
@@ -107,7 +126,7 @@ The smallest stable role catalog covers the real independent workloads:
 
 The controller prepares a delegation envelope, spawns a fresh execution, receives a delegation receipt, validates the referenced evidence, and only then evaluates the node's normal completion predicate. Missing, stale, out-of-scope, or unverified results are rejected or routed to a bounded repair; they never advance the graph.
 
-Model choice is resolved at dispatch from the currently available catalog, so model IDs do not become stale graph constants. Prefer the fastest suitable model for low-ambiguity, low-risk, cost-sensitive work; a balanced model for ordinary exploration and QA; and the strongest suitable coding or reasoning model for high-risk implementation, architecture, security, or ambiguous review. Raise reasoning effort as ambiguity and consequence rise. Every receipt records the concrete model and effort actually used.
+Ordinary model choice is resolved at dispatch from the currently available catalog, so model IDs do not become stale graph constants. Prefer the fastest suitable model for low-ambiguity, low-risk, cost-sensitive work; a balanced model for ordinary exploration and QA; and the strongest suitable coding or reasoning model for high-risk implementation, architecture, security, or ambiguous review. Raise reasoning effort as ambiguity and consequence rise. Every receipt records the concrete model and effort actually used. Deliberation is the explicit exception: every specialist and proposal owner is pinned by contract to `gpt-5.6-luna` at `max` reasoning and must record both in its envelope and receipt.
 
 Parallelizability changes scheduling, not authority. Read-only and test branches may run concurrently on one frozen digest. Active v0 serializes implementation and repair because it has no writer fork. A future explicit writer fork may run multiple writers only when their workspaces, leases, files, and acceptance seams are disjoint.
 
@@ -126,6 +145,7 @@ The visible information order is:
 | Route | lane, tier, canonical source, selected and skipped stages, current stage, next material gate | run starts unless classification itself needs a decision |
 | Annotation batch | source count, observation count, grouped problems, duplicates, impact/confidence, durable task links, and per-problem status | clear problems enter the sequential child-run queue; only material ambiguity pauses its problem |
 | Working | current material stage and expected evidence; routine internal transitions stay compact | controller advances on valid evidence |
+| Deliberation | frozen question, profile and roster, current bounded round, objections, retained concerns, and exact caller | controller routes peer turns, validates one closed disposition, and resumes only the invoking node |
 | Side quest | brief linked-task notice while the parent mission and current node stay visible | new task owns the bounded tangent; parent resumes immediately |
 | Decision | one question, 2-3 choices, recommendation, and one-sentence tradeoffs | selected answer becomes decision evidence; empty remains unanswered |
 | Revision | failed evidence, owning stage, invalidated downstream evidence, and bounded back-edge | repair runs against the same requested outcome |
@@ -221,7 +241,7 @@ When a downstream finding invalidates upstream truth, return to the owning stage
 
 ## Testing decisions
 
-The executable seam is the graph contract, not every upstream skill. The standard-library validator checks duplicate IDs, references, executor kinds, reachability, terminal reachability, evidence and predicate references, fork/join pairing, bounded cycles, decision receipts, durable slice bindings, compound release authority, the mandatory run-review path, every closed outcome table, and delegation role, receipt, authority, freshness, and writer-isolation rules. Trace fixtures must follow real edges and select the table value mapped to each branching transition.
+The executable seam is the graph contract, not every upstream skill. The standard-library validators check duplicate IDs, references, executor kinds, reachability, terminal reachability, evidence and predicate references, fork/join pairing, bounded cycles, decision receipts, durable slice bindings, compound release authority, the mandatory run-review path, every closed outcome table, exact replay edge IDs and outcomes, and delegation role, receipt, authority, freshness, mission/input/proposal binding, peer exchange, consent, and writer-isolation rules. Trace fixtures must follow real edges and select the table value mapped to each branching transition.
 
 After validation, supervise representative traces containing these behaviors:
 
@@ -234,6 +254,7 @@ After validation, supervise representative traces containing these behaviors:
 7. an unrelated request creates a linked side-quest task and the parent resumes the same node
 8. an aligned implementation run auto-decides its version and reaches production verification without repeat ship or deploy confirmation
 9. an annotation batch maps every observation, groups duplicate evidence, creates or reuses one canonical task per problem, executes two problems sequentially, and closes only after both child receipts synchronize task status
+10. design and engineering callers reuse one deliberation template; peers receive and answer one another, an evidence-based objection causes bounded revision, Luna/max is enforced, and both results return to their exact callers
 
 Upstream skills retain their own tests. A predicate evaluator, workflow runtime, distributed lease manager, and persistent ledger are out of scope for v0.
 
@@ -252,6 +273,7 @@ STRUCTURAL CHECKS                              SUPERVISED TRACE
 [tested] compound release boundary and authority policy
 [tested] late hard-invariant downgrade
 [tested] delegation role, receipt, freshness, controller, and writer-isolation policy
+[tested] generic deliberation registry, Luna/max, bounded discussion, hard guards, and exact return binding
 ```
 
 ## Failure modes
@@ -274,10 +296,14 @@ STRUCTURAL CHECKS                              SUPERVISED TRACE
 | annotations are treated as tasks | ledger counts or task idempotency receipts do not reconcile | atomize, cluster by underlying problem, and reuse equivalent canonical tasks | fewer durable tasks than source annotations when evidence overlaps |
 | ambiguous annotation blocks the batch | unrelated ready problems remain in the ledger | pause only the affected problem and continue dependency-safe ready work | one focused question without losing clear work |
 | durable task is checked off from prose | child receipt or controller validation is missing | keep the task in progress or blocked until evidence is validated | task status matches proven delivery state |
+| independent reports masquerade as deliberation | no lossless peer broadcast, named response, or position-change evidence | reject the return and resume the bounded discussion if budget remains | no joint proposal accepted from isolated summaries |
+| deliberation tries to replace its caller | run, node, input digest, profile version, or return node differs from the request | reject the return and preserve the parent mission and suspended caller | invalid return receipt; no parent transition |
+| objection is treated as a vote | objection lacks a violated requirement or missing evidence, or majority count selects the result | route to revision, evidence, one material human decision, or block | dissent remains visible and no vote grants acceptance |
+| deliberation reaches a hard gate | proposal conflicts with safety, truth, tenant/security, release authority, required verification, or failed ship/deploy evidence | return fatal or blocked; never waive the gate | exact invariant conflict and caller remain visible |
 
 ## Implementation strategy
 
-Sequential implementation, no parallelization opportunity. The JSON contract, validator, skill instructions, vocabulary, and human specification are one tightly coupled change and should be reviewed and activated as one version.
+Keep graph-contract writes serialized because the JSON, validator, instructions, vocabulary, and human specification are one tightly coupled version. Independent read-only semantic review and replay may run in parallel against the frozen candidate.
 
 ## Rollout and rollback
 
@@ -300,7 +326,7 @@ Activate v0 in supervised mode after the validator and representative trace pass
 - direct Buzz, Hermes, or Nostr integration
 - unscoped release authority outside an explicit SOP SLOP implementation-through-production request
 - automatic graph mutation or promotion
-- arbitrary OR splits or peer-agent consensus
+- arbitrary OR splits, unbounded peer swarms, or majority-vote transition authority
 - a new product, task, or domain source of truth
 
 ## Design review result
@@ -323,6 +349,7 @@ Verdict: accepted for supervised v0; no unresolved activation blocker in the gra
 - Evidence lifetime: slice receipts bind slice ID, approved plan digest, and delivered commit; final candidate verification alone binds the assembled frozen revision.
 - Terminal truth: every receipt edge explicitly sets delivery status, while review effective status may only downgrade a confirmed hard-invariant breach to failed.
 - Learning safety: v0 is proposal-only; pre-unlock future auto-promotion is limited to presentation and diagnostics. Semantic graph promotion remains human-approved until executable replay and an independent evaluator exist.
-- Verification: the standard-library graph validator, negative self-tests, skill validation, and supervised forward trace are required before activation.
+- Deliberation safety: one generic profile-driven child protocol returns only to its exact caller; Luna/max peers challenge one another within two rounds, while the controller and hard guards retain authority.
+- Verification: the standard-library graph validator, negative self-tests, annotation replay, two-profile deliberation replay, skill validation, and independent semantic forward test are required before activation.
 
 Deferred target capabilities are not active-v0 blockers: a durable workflow runtime, Buzz/Hermes wiring, stoppable fine-grained release adapters, historical semantic replay, and semantic auto-promotion.

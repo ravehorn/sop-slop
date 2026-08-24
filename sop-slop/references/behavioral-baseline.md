@@ -8,6 +8,8 @@ SOP SLOP was hardened from repeated supervised runs that delivered strong softwa
 4. Release authority gets re-requested unless the requested completion target and authority source are bound at intake.
 5. Delivery can be factually complete while graph closure remains unproven unless run receipts and reviews are mandatory.
 6. A large annotation batch becomes noisy duplicate work unless every annotation is traced into atomic observations, grouped by underlying problem, and linked to one durable canonical task per accepted problem.
+7. Three independent specialist reports are not deliberation: without shared statements, named responses, revision evidence, exact caller binding, and controller validation, a manager summary can hide disagreement and redirect the parent mission.
+8. A join result is not trustworthy by itself: it must bind the exact frozen subject and branch receipts, and the resolution transition must name that join so later evidence cannot rewrite history.
 
 ## Regression target
 
@@ -19,5 +21,7 @@ Across the next five comparable runs:
 - every production-targeted run either proves production verification or names a real blocking predicate
 - every closed run records a receipt and review classification
 - every annotation batch has complete source coverage, no duplicate tasks for supporting observations, and task completion backed by validated child-run evidence
+- every invoked deliberation proves peer exchange and returns to its exact caller; no routine decision invokes it, no hard guard is waived, and no accepted proposal creates parallel writers
+- every candidate acceptance binds its exact all-branches-pass join; forged, stale, failed, missing, or later-unbound branch evidence cannot reach completion or release
 
 This baseline contains no customer, repository, task, or private run identifiers.

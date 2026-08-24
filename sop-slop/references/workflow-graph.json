@@ -2,7 +2,7 @@
   "schema_version": 1,
   "graph": {
     "id": "product-sop",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "activation": "supervised",
     "start": "intake_run",
     "terminals": ["run_completed", "run_blocked", "run_failed"],
@@ -43,6 +43,40 @@
       "child_route": "smallest_valid_sop_slop_lane_tier_and_completion",
       "write_concurrency": "one_active_problem_writer",
       "completion": "all_annotations_covered_and_all_accepted_problems_have_validated_terminal_receipts"
+    },
+    "deliberation": {
+      "mode": "optional_bounded_peer_discussion",
+      "usage_guard": "material_competing_judgment_unresolved_by_repository_evidence_or_established_pattern",
+      "routine_action": "skip",
+      "template": "bounded_peer_deliberation",
+      "profile_registry": "closed_and_versioned",
+      "role_id": "reviewer",
+      "specialist_model": "gpt-5.6-luna",
+      "specialist_reasoning_effort": "max",
+      "shared_input": "frozen_deliberation_request",
+      "first_round": "independent_observation_no_final_proposal",
+      "peer_exchange": "lossless_broadcast_and_named_follow_up",
+      "contribution_fields": ["CLAIM", "WHY", "EVIDENCE", "QUESTION_FOR", "OBJECTION", "CHANGE_MY_MIND_IF"],
+      "max_discussion_rounds": 2,
+      "contributions_per_specialist_per_round": {"min": 1, "max": 2},
+      "max_evidence_or_experiment_cycles": 1,
+      "max_material_human_decisions": 1,
+      "proposal_owner": "controller_selects_dominant_lens_owner",
+      "consent_values": ["accept", "accept_with_concern", "object"],
+      "decision_rule": "requirements_and_evidence_not_majority_vote",
+      "valid_objection": "violated_requirement_or_missing_evidence_not_taste_alone",
+      "factual_uncertainty": "inspection_prototype_or_experiment_not_more_debate",
+      "subjective_choice": "one_codex_picker_question",
+      "round_exhaustion": "cheapest_reversible_experiment_or_block_with_dissent",
+      "hard_invariants": "immutable_and_not_debatable",
+      "mission_anchor": "preserved",
+      "transition_authority": "controller_only",
+      "return_contract": "exact_invoking_run_mission_node_input_digest_and_profile_version",
+      "canonical_state": "typed_deliberation_artifacts",
+      "upstream_change": "invalidate_affected_artifacts_and_return_to_owning_stage_normally",
+      "post_acceptance_write": "one_serialized_implementation_writer",
+      "parallel_post_acceptance": "read_only_review_and_qa_against_frozen_inputs",
+      "release_gate_override": false
     },
     "autonomy": {
       "alignment_lock": "accepted_outcome_behavior_scope_non_goals_and_authority",
@@ -196,10 +230,19 @@
       "stop_condition": "Return reproducible results and evidence when the assigned checks finish, block, or reveal a candidate defect."
     }
   ],
+  "deliberation_profiles": [
+    {"id": "design", "version": "1.0.0", "purpose": "Resolve material UI, interaction, and UX judgment.", "lenses": ["interaction_user_flow", "visual_hierarchy_design_system", "accessibility_edge_cases"], "eligible_callers": ["review_experience"], "acceptance_focus": ["user_workflow", "design_system_fit", "mobile_and_accessibility"]},
+    {"id": "product_domain", "version": "1.0.0", "purpose": "Resolve competing product, economic, and domain-truth judgment.", "lenses": ["customer_operator_reality", "product_economic_scope", "domain_data_truth"], "eligible_callers": ["align_product", "validate_product_opportunity", "review_product_direction"], "acceptance_focus": ["real_user_value", "bounded_scope", "canonical_domain_truth"]},
+    {"id": "specification", "version": "1.0.0", "purpose": "Resolve competing interpretations inside a product specification.", "lenses": ["behavior", "scope_and_non_goals", "acceptance_and_contradictions"], "eligible_callers": ["specify_product"], "acceptance_focus": ["observable_behavior", "explicit_boundaries", "testable_acceptance"]},
+    {"id": "engineering", "version": "1.0.0", "purpose": "Resolve material architecture and delivery tradeoffs.", "lenses": ["simplicity_maintainability", "reliability_security", "operations_cost"], "eligible_callers": ["review_engineering"], "acceptance_focus": ["smallest_correct_design", "failure_safety", "operational_fit"]},
+    {"id": "review_adjudication", "version": "1.0.0", "purpose": "Adjudicate material conflicting review findings without voting.", "lenses": ["correctness", "security_risk", "maintainability"], "eligible_callers": ["review_candidate", "resolve_candidate"], "acceptance_focus": ["evidence_bound_findings", "risk_disposition", "repair_scope"]},
+    {"id": "qa_triage", "version": "1.0.0", "purpose": "Resolve material ambiguity in observed runtime failures.", "lenses": ["user_impact", "reproduction_evidence", "probable_ownership_root_cause"], "eligible_callers": ["exercise_candidate", "resolve_candidate"], "acceptance_focus": ["reproducibility", "impact", "bounded_next_owner"]},
+    {"id": "learning_retro", "version": "1.0.0", "purpose": "Resolve competing explanations of a completed run.", "lenses": ["outcome_correctness", "process_failure", "autonomy_time_cost"], "eligible_callers": ["review_run"], "acceptance_focus": ["root_cause", "repeatability", "proportionate_improvement"]}
+  ],
   "evidence_types": [
     {
       "id": "route_card",
-      "required_fields": ["graph_version", "lane", "tier", "primary_outcome", "observable_proof", "non_goals", "requested_completion", "current_node", "authority_source", "entry_stage", "selected_stages", "skipped_stages", "skip_reasons"]
+      "required_fields": ["run_id", "graph_version", "lane", "tier", "primary_outcome", "observable_proof", "non_goals", "requested_completion", "current_node", "authority_source", "entry_stage", "selected_stages", "skipped_stages", "skip_reasons"]
     },
     {
       "id": "authority_envelope",
@@ -226,6 +269,26 @@
       "required_fields": ["accepted_outcome", "accepted_behavior", "accepted_scope", "non_goals", "authority_boundaries", "subject_revision", "actor", "locked_at"]
     },
     {
+      "id": "deliberation_request",
+      "required_fields": ["request_id", "invoking_run_id", "mission_anchor_digest", "invoking_node_id", "decision_question", "deliberation_reason", "profile_id", "profile_version", "frozen_input_refs", "input_digest", "participant_roster", "specialist_lenses", "model", "reasoning_effort", "acceptance_criteria", "hard_invariants", "round_budget", "contribution_budget", "authority_envelope_ref", "expected_return_evidence", "return_node_id", "return_contract", "issuer", "created_at"]
+    },
+    {
+      "id": "deliberation_round",
+      "required_fields": ["request_id", "invoking_run_id", "invoking_node_id", "input_digest", "profile_id", "profile_version", "round_number", "phase", "participant_roster", "delegation_envelopes", "delegation_receipts", "contributions", "broadcasts", "named_questions", "responses", "objections", "position_changes", "controller_validation", "created_at"]
+    },
+    {
+      "id": "deliberation_joint_proposal",
+      "required_fields": ["request_id", "input_digest", "profile_id", "profile_version", "round_number", "owner_lens", "owner_delegation_envelope", "owner_delegation_receipt", "proposal_digest", "proposal", "acceptance_mapping", "hard_invariant_check", "evidence_refs", "retained_concerns", "created_at"]
+    },
+    {
+      "id": "deliberation_consent_receipt",
+      "required_fields": ["request_id", "proposal_digest", "profile_id", "profile_version", "specialist_responses", "allowed_values", "objections", "concerns", "delegation_envelopes", "delegation_receipts", "created_at"]
+    },
+    {
+      "id": "deliberation_return_receipt",
+      "required_fields": ["request_id", "invoking_run_id", "mission_anchor_digest", "invoking_node_id", "input_digest", "profile_id", "profile_version", "accepted_proposal_ref", "disposition", "controller_validation", "dissent", "hard_invariant_check", "invalidated_artifacts", "evidence_refs", "return_node_id", "returned_at"]
+    },
+    {
       "id": "artifact_receipt",
       "required_fields": ["artifact_kind", "uri", "digest", "subject_revision", "issuer", "created_at"]
     },
@@ -235,7 +298,7 @@
     },
     {
       "id": "verification_receipt",
-      "required_fields": ["check_id", "subject_digest", "result", "details_uri", "issuer", "created_at"]
+      "required_fields": ["receipt_id", "check_id", "subject_digest", "result", "details_uri", "issuer", "created_at"]
     },
     {
       "id": "external_action_receipt",
@@ -247,7 +310,7 @@
     },
     {
       "id": "join_receipt",
-      "required_fields": ["join_id", "fork_id", "subject_digest", "received_branches", "result", "created_at"]
+      "required_fields": ["join_id", "fork_id", "subject_digest", "received_branches", "branch_receipt_ids", "result", "created_at"]
     },
     {
       "id": "delegation_receipt",
@@ -491,6 +554,101 @@
         "resume_same_host": true,
         "max_active_per_host": 1
       }
+    }
+  ],
+  "dynamic_subgraph_templates": [
+    {
+      "id": "bounded_peer_deliberation",
+      "kind": "call_return_subgraph",
+      "profile_registry_ref": "deliberation_profiles",
+      "allowed_hosts": ["align_product", "validate_product_opportunity", "review_product_direction", "specify_product", "review_experience", "review_engineering", "review_candidate", "exercise_candidate", "resolve_candidate", "review_run"],
+      "invocation": {
+        "guard": "material_competing_judgment_unresolved",
+        "request_evidence": "deliberation_request",
+        "suspend_invoking_node": true,
+        "max_active_per_invoking_node": 1
+      },
+      "executor": {"kind": "controller", "id": "deliberation_controller"},
+      "specialist_execution": {
+        "role_id": "reviewer",
+        "model": "gpt-5.6-luna",
+        "reasoning_effort": "max",
+        "fresh_thread": true,
+        "envelope_and_receipt_required": true
+      },
+      "nodes": [
+        {"id": "prepare_deliberation", "kind": "outcome", "executor": {"kind": "controller", "id": "freeze_deliberation_request"}, "completion": {"predicate": "deliberation_request_frozen", "evidence": ["deliberation_request"]}},
+        {"id": "observe_independently", "kind": "outcome", "executor": {"kind": "controller", "id": "independent_specialist_dispatch"}, "delegation": {"role_id": "reviewer", "required_model": "gpt-5.6-luna", "required_reasoning_effort": "max", "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "deliberation_independent_observations_recorded", "evidence": ["deliberation_round"]}},
+        {"id": "discuss_with_peers", "kind": "outcome", "executor": {"kind": "controller", "id": "named_peer_follow_up_router"}, "delegation": {"role_id": "reviewer", "required_model": "gpt-5.6-luna", "required_reasoning_effort": "max", "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "deliberation_peer_round_recorded", "evidence": ["deliberation_round"]}},
+        {"id": "draft_joint_proposal", "kind": "outcome", "executor": {"kind": "controller", "id": "dominant_lens_proposal_owner_dispatch"}, "delegation": {"role_id": "reviewer", "required_model": "gpt-5.6-luna", "required_reasoning_effort": "max", "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "deliberation_joint_proposal_recorded", "evidence": ["deliberation_joint_proposal"]}},
+        {"id": "check_deliberation_consent", "kind": "outcome", "executor": {"kind": "controller", "id": "consent_check_dispatch"}, "delegation": {"role_id": "reviewer", "required_model": "gpt-5.6-luna", "required_reasoning_effort": "max", "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "deliberation_consent_recorded", "evidence": ["deliberation_consent_receipt"]}},
+        {"id": "validate_deliberation", "kind": "outcome", "executor": {"kind": "controller", "id": "deliberation_result_validator"}, "completion": {"predicate": "deliberation_return_validated", "evidence": ["deliberation_return_receipt"]}},
+        {"id": "resolve_deliberation_evidence", "kind": "outcome", "executor": {"kind": "controller", "id": "bounded_evidence_or_experiment_resolver"}, "delegation": {"role_ids": ["explorer", "qa_tester"], "required_model": "gpt-5.6-luna", "required_reasoning_effort": "max", "parallelism": "read_or_test_only", "write_policy": "test_artifacts_only"}, "completion": {"predicate": "verification_recorded", "evidence": ["verification_receipt"]}},
+        {"id": "ask_material_human_decision", "kind": "decision", "executor": {"kind": "human", "id": "codex_picker"}, "completion": {"predicate": "human_decision_recorded", "evidence": ["decision_receipt"]}},
+        {"id": "return_to_invoking_node", "kind": "return", "executor": {"kind": "controller", "id": "exact_caller_return"}, "completion": {"predicate": "deliberation_return_validated", "evidence": ["deliberation_return_receipt"]}}
+      ],
+      "edges": [
+        {"id": "deliberation_prepare_to_observe", "from": "prepare_deliberation", "to": "observe_independently", "guard": "subgraph_stage_completed", "type": "advance"},
+        {"id": "deliberation_observe_to_discuss", "from": "observe_independently", "to": "discuss_with_peers", "guard": "subgraph_stage_completed", "type": "advance"},
+        {"id": "deliberation_discuss_to_proposal", "from": "discuss_with_peers", "to": "draft_joint_proposal", "guard": "subgraph_stage_completed", "type": "advance"},
+        {"id": "deliberation_proposal_to_consent", "from": "draft_joint_proposal", "to": "check_deliberation_consent", "guard": "subgraph_stage_completed", "type": "advance"},
+        {"id": "deliberation_consent_to_validate", "from": "check_deliberation_consent", "to": "validate_deliberation", "guard": "subgraph_stage_completed", "type": "advance"},
+        {"id": "deliberation_accept_to_return", "from": "validate_deliberation", "to": "return_to_invoking_node", "guard": "deliberation_accepted", "type": "return"},
+        {"id": "deliberation_revision_to_discussion", "from": "validate_deliberation", "to": "discuss_with_peers", "guard": "deliberation_revision_required", "type": "revision", "budget": "deliberation_discussion_rounds"},
+        {"id": "deliberation_evidence_to_resolution", "from": "validate_deliberation", "to": "resolve_deliberation_evidence", "guard": "deliberation_evidence_required", "type": "recovery", "budget": "deliberation_evidence_resolution"},
+        {"id": "deliberation_human_to_decision", "from": "validate_deliberation", "to": "ask_material_human_decision", "guard": "deliberation_human_decision_required", "type": "decision", "budget": "deliberation_material_human_decisions"},
+        {"id": "deliberation_blocked_to_return", "from": "validate_deliberation", "to": "return_to_invoking_node", "guard": "deliberation_blocked", "type": "return"},
+        {"id": "deliberation_fatal_to_return", "from": "validate_deliberation", "to": "return_to_invoking_node", "guard": "deliberation_fatal", "type": "return"},
+        {"id": "deliberation_evidence_to_proposal", "from": "resolve_deliberation_evidence", "to": "draft_joint_proposal", "guard": "subgraph_stage_completed", "type": "advance"},
+        {"id": "deliberation_decision_to_proposal", "from": "ask_material_human_decision", "to": "draft_joint_proposal", "guard": "subgraph_decision_recorded", "type": "advance"}
+      ],
+      "outcome_table": {
+        "node": "validate_deliberation",
+        "partition": "deliberation_disposition",
+        "selection": "exactly_one",
+        "evidence": ["deliberation_return_receipt"],
+        "domain": ["accepted", "revision_required", "evidence_or_experiment_required", "material_human_decision_required", "blocked", "fatal"],
+        "cases": [
+          {"value": "accepted", "edge": "deliberation_accept_to_return", "guard": "deliberation_accepted"},
+          {"value": "revision_required", "edge": "deliberation_revision_to_discussion", "guard": "deliberation_revision_required"},
+          {"value": "evidence_or_experiment_required", "edge": "deliberation_evidence_to_resolution", "guard": "deliberation_evidence_required"},
+          {"value": "material_human_decision_required", "edge": "deliberation_human_to_decision", "guard": "deliberation_human_decision_required"},
+          {"value": "blocked", "edge": "deliberation_blocked_to_return", "guard": "deliberation_blocked"},
+          {"value": "fatal", "edge": "deliberation_fatal_to_return", "guard": "deliberation_fatal"}
+        ]
+      },
+      "predicate_definitions": {
+        "deliberation_request_frozen": "The typed request binds the invoking run, stable mission-anchor digest, and node; exact question and reason; one eligible profile and version; digest of frozen canonical input references; roster and lenses; Luna/max runtime; acceptance criteria; hard invariants; budgets; authority; expected return evidence; and exact return contract.",
+        "deliberation_independent_observations_recorded": "Every rostered specialist independently returns one typed observation against the same request before receiving peer statements and before any final proposal exists.",
+        "deliberation_peer_round_recorded": "Every specialist receives the peers' lossless typed statements, named questions reach named peers, each specialist contributes one or two times, objections and position changes are explicit, and the round number is at most two.",
+        "deliberation_joint_proposal_recorded": "The controller selects one dominant-lens owner whose Luna/max receipt binds a joint proposal to the frozen input, acceptance criteria, hard invariants, evidence, and retained concerns.",
+        "deliberation_consent_recorded": "Every rostered specialist receives the same proposal and returns exactly accept, accept_with_concern, or object; objections identify a violated requirement or missing evidence rather than taste.",
+        "deliberation_return_validated": "The controller records one closed disposition bound to the invoking run, stable mission-anchor digest, node, input digest, profile version, proposal, dissent, hard-invariant check, invalidations, evidence, and exact return node.",
+        "subgraph_stage_completed": "The current internal node's completion predicate is true from current evidence.",
+        "subgraph_decision_recorded": "The one material human picker decision has a non-empty decision receipt bound to this request.",
+        "deliberation_accepted": "No material objection or hard-invariant breach remains and the accepted proposal satisfies the frozen acceptance criteria without majority voting.",
+        "deliberation_revision_required": "A solvable evidence-based objection remains and the next peer round stays within the two-round budget.",
+        "deliberation_evidence_required": "A factual disagreement can be resolved by bounded inspection, prototype, check, or reversible experiment; debate alone cannot resolve it.",
+        "deliberation_human_decision_required": "All factual evidence is exhausted and one irreducibly subjective material product, brand, or scope choice blocks return.",
+        "deliberation_blocked": "The round budget is exhausted and no cheapest reversible experiment remains, or required evidence or authority is unavailable; dissent and the smallest unblocker are retained.",
+        "deliberation_fatal": "A non-recoverable hard-invariant, safety, authority, or truth conflict prevents acceptance and cannot be debated away."
+      },
+      "lifecycle": {
+        "instance_id": "request_id",
+        "suspend_invoking_node": true,
+        "resume_exact_invoking_node": true,
+        "return_node_from_request": true,
+        "bind_invoking_run_id": true,
+        "bind_mission_anchor_digest": true,
+        "bind_input_digest": true,
+        "bind_profile_version": true,
+        "bind_resolution_receipts_to_request": true,
+        "accepted_proposal_required_for_accept": true,
+        "may_select_parent_downstream_edge": false,
+        "max_active_per_invoking_node": 1,
+        "upstream_change_handling": "invalidate_affected_artifacts_then_return_to_caller"
+      },
+      "non_debatable_guards": ["hard_safety", "data_truth", "tenant_and_security", "release_authority", "required_verification", "failed_ship_or_deploy_gate"]
     }
   ],
   "nodes": [
@@ -806,7 +964,59 @@
       {"node": "review_run", "outcome": "failed", "edge": "review_to_failed"}
     ], "ends_at": "run_failed"}
   ],
+  "deliberation_trace_scenarios": [
+    {"id": "design_profile_returns_to_exact_caller", "template": "bounded_peer_deliberation", "invoking_run_id": "run-design-1", "invoking_node_id": "review_experience", "profile_id": "design", "profile_version": "1.0.0", "input_digest": "sha256:design-input-1", "invoked": true, "steps": [
+      {"node": "prepare_deliberation", "edge": "deliberation_prepare_to_observe"},
+      {"node": "observe_independently", "edge": "deliberation_observe_to_discuss"},
+      {"node": "discuss_with_peers", "edge": "deliberation_discuss_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "accepted", "edge": "deliberation_accept_to_return"}
+    ], "ends_at": "return_to_invoking_node", "return_node_id": "review_experience", "return_input_digest": "sha256:design-input-1", "assertions": ["same_template", "luna_max", "peer_influence", "controller_validates", "exact_caller_return"]},
+    {"id": "engineering_profile_returns_to_exact_caller", "template": "bounded_peer_deliberation", "invoking_run_id": "run-engineering-1", "invoking_node_id": "review_engineering", "profile_id": "engineering", "profile_version": "1.0.0", "input_digest": "sha256:engineering-input-1", "invoked": true, "steps": [
+      {"node": "prepare_deliberation", "edge": "deliberation_prepare_to_observe"},
+      {"node": "observe_independently", "edge": "deliberation_observe_to_discuss"},
+      {"node": "discuss_with_peers", "edge": "deliberation_discuss_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "accepted", "edge": "deliberation_accept_to_return"}
+    ], "ends_at": "return_to_invoking_node", "return_node_id": "review_engineering", "return_input_digest": "sha256:engineering-input-1", "assertions": ["same_template", "luna_max", "peer_influence", "controller_validates", "exact_caller_return"]},
+    {"id": "objection_routes_through_revision_evidence_and_human_gate", "template": "bounded_peer_deliberation", "invoking_run_id": "run-product-1", "invoking_node_id": "review_product_direction", "profile_id": "product_domain", "profile_version": "1.0.0", "input_digest": "sha256:product-input-1", "invoked": true, "steps": [
+      {"node": "prepare_deliberation", "edge": "deliberation_prepare_to_observe"},
+      {"node": "observe_independently", "edge": "deliberation_observe_to_discuss"},
+      {"node": "discuss_with_peers", "edge": "deliberation_discuss_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "revision_required", "edge": "deliberation_revision_to_discussion"},
+      {"node": "discuss_with_peers", "edge": "deliberation_discuss_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "evidence_or_experiment_required", "edge": "deliberation_evidence_to_resolution"},
+      {"node": "resolve_deliberation_evidence", "edge": "deliberation_evidence_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "material_human_decision_required", "edge": "deliberation_human_to_decision"},
+      {"node": "ask_material_human_decision", "edge": "deliberation_decision_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "accepted", "edge": "deliberation_accept_to_return"}
+    ], "ends_at": "return_to_invoking_node", "return_node_id": "review_product_direction", "return_input_digest": "sha256:product-input-1", "assertions": ["objection_changes_position", "round_budget_two", "facts_route_to_evidence", "subjective_choice_routes_to_picker", "no_majority_vote"]},
+    {"id": "routine_deterministic_node_skips_deliberation", "template": "bounded_peer_deliberation", "invoking_run_id": "run-routine-1", "invoking_node_id": "run_required_checks", "profile_id": null, "profile_version": null, "input_digest": "sha256:routine-input-1", "invoked": false, "steps": [], "ends_at": "run_required_checks", "return_node_id": "run_required_checks", "return_input_digest": "sha256:routine-input-1", "assertions": ["established_pattern_resolves_choice", "no_deliberation_request", "ordinary_node_continues"]},
+    {"id": "hard_gate_cannot_be_debated_away", "template": "bounded_peer_deliberation", "invoking_run_id": "run-review-1", "invoking_node_id": "resolve_candidate", "profile_id": "review_adjudication", "profile_version": "1.0.0", "input_digest": "sha256:failed-gate-input-1", "invoked": true, "steps": [
+      {"node": "prepare_deliberation", "edge": "deliberation_prepare_to_observe"},
+      {"node": "observe_independently", "edge": "deliberation_observe_to_discuss"},
+      {"node": "discuss_with_peers", "edge": "deliberation_discuss_to_proposal"},
+      {"node": "draft_joint_proposal", "edge": "deliberation_proposal_to_consent"},
+      {"node": "check_deliberation_consent", "edge": "deliberation_consent_to_validate"},
+      {"node": "validate_deliberation", "outcome": "fatal", "edge": "deliberation_fatal_to_return"}
+    ], "ends_at": "return_to_invoking_node", "return_node_id": "resolve_candidate", "return_input_digest": "sha256:failed-gate-input-1", "assertions": ["failed_required_gate_preserved", "authority_not_expanded", "fatal_return", "exact_caller_return"]}
+  ],
   "policy_trace_scenarios": [
+    {
+      "id": "deliberation_preserves_peer_discussion_and_caller",
+      "events": ["caller_suspended", "request_frozen", "independent_observations_return", "peer_statements_broadcast", "named_questions_routed", "objections_answered", "positions_revised", "joint_proposal_owned", "consent_checked", "controller_validates", "exact_caller_resumes"],
+      "assertions": ["closed_profile_registry", "same_subgraph_for_distinct_callers", "reviewer_role_reused_with_profile_lenses", "every_specialist_execution_uses_luna_max", "all_specialists_share_one_frozen_request", "first_round_has_no_final_proposal", "peers_receive_and_respond_to_each_other", "typed_contributions_are_auditable", "no_majority_vote", "valid_objections_route_to_revision_evidence_or_user", "two_round_budget", "one_evidence_cycle_budget", "one_material_human_decision_budget", "dissent_preserved", "controller_alone_advances", "exact_mission_caller_and_input_binding", "hard_guards_not_debatable", "one_writer_after_acceptance"]
+    },
     {
       "id": "annotation_batch_preserves_coverage_and_tasks",
       "events": ["annotation_batch_arrives", "observations_atomized", "problems_clustered", "material_intent_resolved", "canonical_tasks_materialized", "child_runs_complete", "parent_closes"],

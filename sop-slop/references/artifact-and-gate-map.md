@@ -14,6 +14,14 @@ intake -> alignment -> spec and reviews -> vertical slices
                                                             -> proposal?
 ```
 
+Annotation-heavy reviews enter through a bounded parent queue before the ordinary lifecycle:
+
+```text
+annotations -> observations -> problem ledger -> canonical durable tasks
+                                              -> one child SOP SLOP run at a time
+                                              -> validated task status + parent receipt
+```
+
 A proposal never rewrites the active run. It becomes the input to a linked successor run.
 
 ```text
@@ -51,10 +59,16 @@ Any changed candidate digest makes all three branch receipts stale.
 9. As the operator, I want unrelated side quests moved into linked Codex tasks, so that the primary mission keeps running without losing the new idea.
 10. As the operator, I want reversible technical, version, and routine release choices auto-decided after alignment, so that the run stops only for consequential decisions or real blockers.
 11. As the operator, I want an explicit implementation-through-production request to reach verified production by default, so that local completion and nested skill endings cannot silently shorten the mission.
+12. As the operator, I want a large annotation batch reduced to its real underlying problems, so that repeated observations strengthen one diagnosis instead of creating duplicate work.
+13. As the operator, I want every accepted annotation problem to exist in the canonical general task list and be checked off only from validated delivery evidence, so that work remains durable outside the conversation.
 
 ## Core decisions
 
 - One coherent requested outcome is one workflow run. T3 programs coordinate multiple linked runs.
+- An annotation batch is one parent review mission. Compound annotations become atomic observations, observations cluster by underlying problem and desired outcome, and every observation retains exactly one primary problem or non-actionable disposition.
+- Each accepted annotation problem receives exactly one idempotent durable task in the workspace's canonical general task list. Equivalent tasks are reused; duplicate annotations remain supporting evidence.
+- Clear annotation problems start without reconfirmation. Only the affected ambiguous problem pauses for one inspect-first `/grill-me` decision at a time unless its dependency blocks the whole batch.
+- Annotation problems execute sequentially as linked child SOP SLOP runs. The parent ledger and canonical task status update only after the controller validates each child receipt.
 - The route card binds a mission anchor: requested outcome and proof, non-goals, current node, requested completion, and authority source. Later messages cannot silently replace it.
 - Every new in-run request is classified as a required continuation/dependency, an explicit mission replacement, or a side quest. Side quests become linked Codex tasks and the parent resumes the same node; parent release authority does not transfer.
 - The graph is hierarchical: a stable lifecycle graph contains bounded lane or alignment subgraphs.
@@ -110,6 +124,7 @@ The visible information order is:
 | State | What the user sees | What happens next |
 | --- | --- | --- |
 | Route | lane, tier, canonical source, selected and skipped stages, current stage, next material gate | run starts unless classification itself needs a decision |
+| Annotation batch | source count, observation count, grouped problems, duplicates, impact/confidence, durable task links, and per-problem status | clear problems enter the sequential child-run queue; only material ambiguity pauses its problem |
 | Working | current material stage and expected evidence; routine internal transitions stay compact | controller advances on valid evidence |
 | Side quest | brief linked-task notice while the parent mission and current node stay visible | new task owns the bounded tangent; parent resumes immediately |
 | Decision | one question, 2-3 choices, recommendation, and one-sentence tradeoffs | selected answer becomes decision evidence; empty remains unanswered |
@@ -218,6 +233,7 @@ After validation, supervise representative traces containing these behaviors:
 6. a fresh specialist returns bounded evidence that the controller validates without delegating the transition
 7. an unrelated request creates a linked side-quest task and the parent resumes the same node
 8. an aligned implementation run auto-decides its version and reaches production verification without repeat ship or deploy confirmation
+9. an annotation batch maps every observation, groups duplicate evidence, creates or reuses one canonical task per problem, executes two problems sequentially, and closes only after both child receipts synchronize task status
 
 Upstream skills retain their own tests. A predicate evaluator, workflow runtime, distributed lease manager, and persistent ledger are out of scope for v0.
 
@@ -255,6 +271,9 @@ STRUCTURAL CHECKS                              SUPERVISED TRACE
 | candidate branch never returns | join cannot complete | block after the authority-envelope limit | missing branch named; no partial join success |
 | unrelated request arrives mid-run | focus classifier plus mission anchor | create a bounded linked task without changing the parent route, target, or current node | side-quest link followed by immediate parent continuation |
 | nested skill returns a final message | controller still owns the nonterminal node | validate evidence and select the next legal edge | no premature outer-run stop |
+| annotations are treated as tasks | ledger counts or task idempotency receipts do not reconcile | atomize, cluster by underlying problem, and reuse equivalent canonical tasks | fewer durable tasks than source annotations when evidence overlaps |
+| ambiguous annotation blocks the batch | unrelated ready problems remain in the ledger | pause only the affected problem and continue dependency-safe ready work | one focused question without losing clear work |
+| durable task is checked off from prose | child receipt or controller validation is missing | keep the task in progress or blocked until evidence is validated | task status matches proven delivery state |
 
 ## Implementation strategy
 

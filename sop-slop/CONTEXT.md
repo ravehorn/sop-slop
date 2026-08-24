@@ -20,6 +20,18 @@ _Avoid_: Chat recap
 An independently useful request that is not required to unblock the primary mission. It becomes a linked Codex task and never changes the parent route or completion target.
 _Avoid_: Implicit scope expansion
 
+**Annotation Batch**:
+Several annotations, review comments, or observations submitted as evidence for one parent review mission. Annotation count does not determine task count.
+_Avoid_: Flat bug list
+
+**Annotation Problem Ledger**:
+The reconciled mapping from source annotations to atomic observations, underlying problem clusters, desired outcomes, clarification state, execution order, canonical task references, and validated status.
+_Avoid_: Untraceable summary
+
+**Annotation Task Bridge**:
+The idempotent adapter that creates or reuses exactly one durable task per accepted problem in the workspace's canonical general task list and synchronizes status only from validated child-run evidence.
+_Avoid_: One task per comment, duplicate tracker
+
 **Alignment Lock**:
 The recorded point at which accepted outcome, behavior, scope, non-goals, and authority boundaries are settled. After it, reversible technical and release-mechanics choices belong to the controller.
 _Avoid_: Permission to ignore safety

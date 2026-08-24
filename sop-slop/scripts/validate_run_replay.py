@@ -14,7 +14,7 @@ from validate_workflow_graph import DuplicateKeyError, _unique_object, load_grap
 
 ROOT = Path(__file__).resolve().parents[1]
 GRAPH_PATH = ROOT / "references" / "workflow-graph.json"
-PROPOSAL_PATH = ROOT / "references" / "forward-test-fixture-0.3.1.json"
+PROPOSAL_PATH = ROOT / "references" / "forward-test-fixture-0.4.0.json"
 SCENARIO_KEYS = ("historical_replay", "forward_test", "run")
 PROMOTION_STATUSES = {
     "replay_validated_pending_independent_forward_test",

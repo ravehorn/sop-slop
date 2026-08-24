@@ -1,6 +1,6 @@
 ---
 name: sop-slop
-description: Carry substantial product or domain changes from alignment through verified production while keeping the primary mission focused, forking side quests into separate Codex tasks, and running only the necessary product, engineering, design, QA, ship, and deploy gates. Also use for bounded product reviews or strategy decisions when explicitly requested. Do not use for isolated bugs or small, already-clear code changes.
+description: Carry substantial product or domain changes from alignment through verified production while keeping the primary mission focused, turning annotation batches into deduplicated problem queues, forking side quests into separate Codex tasks, and running only the necessary product, engineering, design, QA, ship, and deploy gates. Also use for bounded product reviews or strategy decisions when explicitly requested. Do not use for isolated bugs or small, already-clear code changes.
 ---
 
 # SOP SLOP
@@ -64,6 +64,18 @@ When the user or repository instructions authorize automatic linked-task creatio
 5. If task creation is unavailable, retain a ready-to-send side-quest prompt and continue the primary mission; never pivot the parent run.
 
 A question or defect is not a side quest when it blocks the active completion predicate. A new idea is not a mission replacement unless the user clearly says it replaces the original outcome.
+
+## Annotation batch intake
+
+When the user appends multiple UI, browser, document, or code annotations, read [references/annotation-batches.md](references/annotation-batches.md) before selecting the ordinary entry stage.
+
+Treat the batch as evidence for one parent review mission, not as one task per comment. First create an `annotation_problem_ledger` that atomizes compound comments, clusters observations by underlying problem and desired outcome, quantifies each cluster without inventing certainty, and maps every source annotation to a disposition. Supporting or duplicate annotations strengthen one problem; they do not create duplicate work.
+
+Materialize exactly one durable task for every accepted problem in the workspace's canonical general task list. Reuse an equivalent existing task instead of duplicating it, retain the canonical task ID in the ledger, and synchronize its status from validated child-run evidence. If no canonical task list or task-write authority exists, block at the task bridge rather than keeping completion only in chat or inventing a second tracker.
+
+Show the grouped problem list before implementation. Start clear, independent problems without asking for confirmation even when another independent problem still needs clarification. When no ready problem has precedence, inspect the product and repository first, then use a bounded `/grill-me` decision tree and the Codex picker for one highest-dependency question at a time. Ambiguity blocks only the affected problem unless it is a dependency of the whole batch.
+
+Execute one ready problem at a time as a linked child SOP SLOP run using its own mission anchor, smallest valid lane and tier, requested completion, and run receipt. Pass only that ledger problem into the child; do not re-trigger batch intake recursively. Keep the parent task plan as the visible projection of the durable task list. Tick a problem and its canonical task only after validating the child receipt. Do not close the parent batch until every annotation is covered and every accepted problem is completed, blocked, or failed with evidence.
 
 ## Alignment lock and question budget
 
@@ -263,7 +275,7 @@ python3 scripts/validate_run_replay.py <document.json> --scenario run --require-
 
 The temporary document is diagnostic input, not a new source of workflow truth. Exit `2` means delivery may still be factually complete, but graph closure is unproven; report the delivery result and missing evidence or transitions separately. This check never grants authority or changes the active graph.
 
-Use [references/forward-test-fixture-0.3.1.json](references/forward-test-fixture-0.3.1.json) as the public synthetic forward-test fixture for this diagnostic.
+Use [references/forward-test-fixture-0.4.0.json](references/forward-test-fixture-0.4.0.json) as the public synthetic annotation-batch forward-test fixture for this diagnostic.
 
 ## Completion
 

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "forward_test": {
-    "run_id": "sop-slop-public-forward-0.5.0",
-    "graph_version": "0.5.0",
+    "run_id": "sop-slop-public-forward-0.6.0",
+    "graph_version": "0.6.0",
     "mode": "evolution",
     "lane": "product-change",
     "tier": "T2",
@@ -16,6 +16,8 @@
       "select_next_annotation_problem",
       "execute_annotation_problem",
       "record_run_receipt",
+      "reconcile_run_resources",
+      "request_cleanup_authority",
       "review_run",
       "run_completed"
     ],
@@ -29,15 +31,18 @@
       {"from": "select_next_annotation_problem", "to": "execute_annotation_problem", "edge_id": "annotation_selector_to_problem", "outcome": "ready_problem"},
       {"from": "execute_annotation_problem", "to": "select_next_annotation_problem", "edge_id": "annotation_problem_to_selector"},
       {"from": "select_next_annotation_problem", "to": "record_run_receipt", "edge_id": "annotation_selector_completed_to_receipt", "outcome": "completed"},
-      {"from": "record_run_receipt", "to": "review_run", "edge_id": "receipt_to_review"},
+      {"from": "record_run_receipt", "to": "reconcile_run_resources", "edge_id": "receipt_to_cleanup"},
+      {"from": "reconcile_run_resources", "to": "request_cleanup_authority", "edge_id": "cleanup_to_authority", "outcome": "confirmation_required"},
+      {"from": "request_cleanup_authority", "to": "reconcile_run_resources", "edge_id": "cleanup_authority_to_cleanup", "outcome": "granted"},
+      {"from": "reconcile_run_resources", "to": "review_run", "edge_id": "cleanup_to_review", "outcome": "reconciled"},
       {"from": "review_run", "to": "run_completed", "edge_id": "review_to_completed", "outcome": "completed"}
     ],
     "delegations": [],
     "evidence": {
       "route_card": [
         {
-          "run_id": "sop-slop-public-forward-0.5.0",
-          "graph_version": "0.5.0",
+          "run_id": "sop-slop-public-forward-0.6.0",
+          "graph_version": "0.6.0",
           "lane": "product-change",
           "tier": "T2",
           "primary_outcome": "Resolve three product annotations as two underlying problems and verify both in production.",
@@ -47,7 +52,7 @@
           "current_node": "record_run_receipt",
           "authority_source": "synthetic-fixture:bounded-annotation-delivery",
           "entry_stage": "structure_annotation_batch",
-          "selected_stages": ["intake_run", "structure_annotation_batch", "materialize_annotation_tasks", "select_next_annotation_problem", "execute_annotation_problem", "record_run_receipt", "review_run", "run_completed"],
+          "selected_stages": ["intake_run", "structure_annotation_batch", "materialize_annotation_tasks", "select_next_annotation_problem", "execute_annotation_problem", "record_run_receipt", "reconcile_run_resources", "request_cleanup_authority", "review_run", "run_completed"],
           "skipped_stages": ["align_product", "validate_product_opportunity"],
           "skip_reasons": {"align_product": "The desired behavior is explicit in the annotations.", "validate_product_opportunity": "The batch corrects accepted product behavior rather than testing demand."}
         }
@@ -56,15 +61,41 @@
         {
           "allowed_actions": ["read fixture", "create or reuse canonical tasks", "run bounded child delivery", "verify production"],
           "forbidden_actions": ["destructive data changes", "create duplicate tracker"],
-          "resources": ["sop-slop/references/forward-test-fixture-0.5.0.json"],
+          "resources": ["sop-slop/references/forward-test-fixture-0.6.0.json"],
           "environments": ["local synthetic test"],
           "limits": {"accepted_problems": 2, "active_writers": 1},
           "expires_at": "2099-01-01T00:00:00Z"
         }
       ],
+      "run_resource_manifest": [
+        {
+          "run_id": "sop-slop-public-forward-0.6.0",
+          "graph_version": "0.6.0",
+          "resources": [{"resource_id": "worktree-001", "type": "git_worktree", "target": "/tmp/sop-slop-public-forward-worktree", "run_owned": true}],
+          "ownership": {"worktree-001": "created_by_current_run"},
+          "exact_targets": ["/tmp/sop-slop-public-forward-worktree"],
+          "creation_receipts": ["synthetic-worktree-create:001"],
+          "disposal_intent": {"worktree-001": "remove_after_verified_delivery"},
+          "issuer": "synthetic-controller",
+          "created_at": "2026-01-01T00:00:01Z",
+          "updated_at": "2026-01-01T00:00:09Z"
+        }
+      ],
+      "decision_receipt": [
+        {
+          "decision_id": "cleanup-delete-001",
+          "question": "Delete this exact verified worktree?",
+          "options": ["yes", "no"],
+          "recommendation": "yes",
+          "selection": "yes",
+          "actor": "synthetic-operator",
+          "scope": {"resource_manifest_digest": "ec3b4f6f26c2ad253df3dc281e9bf6730071864abfa353300b44fddd7c441de1", "exact_targets": ["/tmp/sop-slop-public-forward-worktree"]},
+          "decided_at": "2026-01-01T00:00:09.3Z"
+        }
+      ],
       "annotation_problem_ledger": [
         {
-          "batch_id": "annotation-batch-forward-0.5.0",
+          "batch_id": "annotation-batch-forward-0.6.0",
           "primary_mission": "Resolve the supplied product annotations without duplicating work.",
           "source_revision": "synthetic-ui-revision-1",
           "annotation_ids": ["A01", "A02", "A03"],
@@ -90,12 +121,12 @@
       ],
       "annotation_task_receipt": [
         {
-          "batch_id": "annotation-batch-forward-0.5.0",
+          "batch_id": "annotation-batch-forward-0.6.0",
           "problem_id": "P01",
           "task_system": "canonical-synthetic-list",
           "task_id": "TASK-101",
           "canonical_uri": "task://TASK-101",
-          "idempotency_key": "annotation-batch-forward-0.5.0:P01",
+          "idempotency_key": "annotation-batch-forward-0.6.0:P01",
           "action": "created_and_synchronized",
           "previous_status": "ready",
           "new_status": "completed",
@@ -104,12 +135,12 @@
           "created_at": "2026-01-01T00:00:05Z"
         },
         {
-          "batch_id": "annotation-batch-forward-0.5.0",
+          "batch_id": "annotation-batch-forward-0.6.0",
           "problem_id": "P02",
           "task_system": "canonical-synthetic-list",
           "task_id": "TASK-102",
           "canonical_uri": "task://TASK-102",
-          "idempotency_key": "annotation-batch-forward-0.5.0:P02",
+          "idempotency_key": "annotation-batch-forward-0.6.0:P02",
           "action": "created_and_synchronized",
           "previous_status": "ready",
           "new_status": "completed",
@@ -120,7 +151,7 @@
       ],
       "annotation_problem_run_receipt": [
         {
-          "batch_id": "annotation-batch-forward-0.5.0",
+          "batch_id": "annotation-batch-forward-0.6.0",
           "problem_id": "P01",
           "annotation_ids": ["A01", "A02"],
           "child_run_id": "annotation-problem-run:P01",
@@ -132,7 +163,7 @@
           "closed_at": "2026-01-01T00:00:05Z"
         },
         {
-          "batch_id": "annotation-batch-forward-0.5.0",
+          "batch_id": "annotation-batch-forward-0.6.0",
           "problem_id": "P02",
           "annotation_ids": ["A03"],
           "child_run_id": "annotation-problem-run:P02",
@@ -146,21 +177,55 @@
       ],
       "run_receipt": [
         {
-          "run_id": "sop-slop-public-forward-0.5.0",
-          "graph_version": "0.5.0",
+          "run_id": "sop-slop-public-forward-0.6.0",
+          "graph_version": "0.6.0",
           "status": "completed",
           "decisions": [],
-          "transitions": ["intake_run->structure_annotation_batch", "structure_annotation_batch->materialize_annotation_tasks", "materialize_annotation_tasks->select_next_annotation_problem", "select_next_annotation_problem->execute_annotation_problem", "execute_annotation_problem->select_next_annotation_problem", "select_next_annotation_problem->record_run_receipt", "record_run_receipt->review_run"],
-          "evidence_refs": ["annotation_problem_ledger:annotation-batch-forward-0.5.0", "annotation_problem_run_receipt:P01", "annotation_problem_run_receipt:P02", "annotation_task_receipt:TASK-101", "annotation_task_receipt:TASK-102"],
+          "transitions": ["intake_run->structure_annotation_batch", "structure_annotation_batch->materialize_annotation_tasks", "materialize_annotation_tasks->select_next_annotation_problem", "select_next_annotation_problem->execute_annotation_problem", "execute_annotation_problem->select_next_annotation_problem", "select_next_annotation_problem->record_run_receipt"],
+          "evidence_refs": ["annotation_problem_ledger:annotation-batch-forward-0.6.0", "annotation_problem_run_receipt:P01", "annotation_problem_run_receipt:P02", "annotation_task_receipt:TASK-101", "annotation_task_receipt:TASK-102"],
           "authority_use": ["canonical task writes", "bounded child delivery"],
           "started_at": "2026-01-01T00:00:00Z",
           "closed_at": "2026-01-01T00:00:09Z"
         }
       ],
+      "run_cleanup_receipt": [
+        {
+          "run_id": "sop-slop-public-forward-0.6.0",
+          "graph_version": "0.6.0",
+          "resource_manifest_digest": "ec3b4f6f26c2ad253df3dc281e9bf6730071864abfa353300b44fddd7c441de1",
+          "inventory": ["worktree-001"],
+          "classifications": {"worktree-001": "destructive_cleanup_requires_confirmation"},
+          "actions": [],
+          "preserved_resources": [],
+          "deletion_card": {"what": "One run-owned Git worktree", "targets": ["/tmp/sop-slop-public-forward-worktree"], "count": 1, "size": "synthetic 1 MiB", "location": "/tmp/sop-slop-public-forward-worktree", "why": "The run is delivered and the isolated worktree is no longer needed.", "recoverable": ["commit pushed", "branch merged"], "what_would_be_lost": ["local checkout only"], "alternatives": ["preserve the worktree"]},
+          "decision_ref": null,
+          "result": "confirmation_required",
+          "verification": {"inventory": "passed", "deletion": "not_started"},
+          "blocker": null,
+          "actor": "synthetic-controller",
+          "created_at": "2026-01-01T00:00:09.2Z"
+        },
+        {
+          "run_id": "sop-slop-public-forward-0.6.0",
+          "graph_version": "0.6.0",
+          "resource_manifest_digest": "ec3b4f6f26c2ad253df3dc281e9bf6730071864abfa353300b44fddd7c441de1",
+          "inventory": ["worktree-001"],
+          "classifications": {"worktree-001": "destructive_cleanup_requires_confirmation"},
+          "actions": [{"resource_id": "worktree-001", "action": "remove_worktree", "target": "/tmp/sop-slop-public-forward-worktree", "result": "passed", "checks": {"run_owned": true, "not_primary_workspace": true, "clean": true, "no_untracked_files": true, "commit_pushed": true, "branch_merged_or_disposal_explicitly_confirmed": true, "no_active_run_lease": true}}],
+          "preserved_resources": [],
+          "deletion_card": {"what": "One run-owned Git worktree", "targets": ["/tmp/sop-slop-public-forward-worktree"], "count": 1, "size": "synthetic 1 MiB", "location": "/tmp/sop-slop-public-forward-worktree", "why": "The run is delivered and the isolated worktree is no longer needed.", "recoverable": ["commit pushed", "branch merged"], "what_would_be_lost": ["local checkout only"], "alternatives": ["preserve the worktree"]},
+          "decision_ref": "cleanup-delete-001",
+          "result": "reconciled",
+          "verification": {"inventory": "passed", "target_absent": true, "worktree_registration_absent": true},
+          "blocker": null,
+          "actor": "synthetic-controller",
+          "created_at": "2026-01-01T00:00:09.4Z"
+        }
+      ],
       "run_review_receipt": [
         {
-          "run_id": "sop-slop-public-forward-0.5.0",
-          "graph_version": "0.5.0",
+          "run_id": "sop-slop-public-forward-0.6.0",
+          "graph_version": "0.6.0",
           "review_status": "completed",
           "delivery_status": "completed",
           "effective_status": "completed",

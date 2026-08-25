@@ -14,9 +14,10 @@ It is designed for substantial features, product-domain changes, and end-to-end 
 - treats nested skill finals as stage evidence rather than permission to stop
 - lets eligible product, design, engineering, review, QA, and learning stages call one bounded peer-deliberation protocol and return to the exact caller
 - continues an explicitly authorized full-delivery run through production verification
-- records a run receipt and automatic review before closure
+- reconciles run-owned worktrees, processes, environments, and caches at finalization while preserving user work and gating exact destructive targets
+- records a run receipt, cleanup receipt, and automatic review before closure
 
-The active graph is supervised and inspectable: 39 nodes, 97 edges, typed evidence, named guards, bounded back-edges, and release authority gates.
+The active graph is supervised and inspectable: 41 nodes, 102 edges, typed evidence, named guards, bounded back-edges, and release authority gates.
 
 ## Requirements
 
@@ -64,7 +65,7 @@ Example:
 Use $sop-slop to design, implement, ship, and verify this feature in production. Keep the primary mission focused and create linked tasks for unrelated side quests.
 ```
 
-Release and linked-task authority still come from the request and repository rules. Review or planning requests do not silently become deployment authority. Destructive data actions, security or tenant-boundary expansion, missing credentials, conflicts, failed checks, and unhealthy deployments remain real stops.
+Release and linked-task authority still come from the request and repository rules. Review or planning requests do not silently become deployment authority. Cleanup is limited to exact current-run resources: dirty, untracked, unpushed, unmerged, shared, canonical, active, or ownership-unknown resources are preserved, and destructive cleanup requires one exact recoverability card plus explicit `yes` or `do it` confirmation. Security or tenant-boundary expansion, missing credentials, conflicts, failed checks, and unhealthy deployments remain real stops.
 
 ## Validate
 
@@ -72,7 +73,7 @@ Release and linked-task authority still come from the request and repository rul
 ./scripts/verify-package.sh
 ```
 
-The check validates the skill, graph policy, 60 negative graph cases, 23 adversarial deliberation receipts, annotation-batch and two-profile deliberation forward runs, synthetic closure, default and all-Matt install plans, gstack origin enforcement, rerun routing, and non-git/wrong-remote refusal without downloading dependencies.
+The check validates the skill, graph policy, 66 negative graph cases, 23 adversarial deliberation receipts, 5 adversarial cleanup receipts, annotation-batch and two-profile deliberation forward runs, synthetic closure, default and all-Matt install plans, gstack origin enforcement, rerun routing, and non-git/wrong-remote refusal without downloading dependencies.
 
 ## Upstream projects
 

@@ -15,7 +15,7 @@ from validate_workflow_graph import DuplicateKeyError, _unique_object, load_grap
 
 ROOT = Path(__file__).resolve().parents[1]
 GRAPH_PATH = ROOT / "references" / "workflow-graph.json"
-PROPOSAL_PATH = ROOT / "references" / "forward-test-fixture-0.5.0.json"
+PROPOSAL_PATH = ROOT / "references" / "forward-test-fixture-0.6.0.json"
 SCENARIO_KEYS = ("historical_replay", "forward_test", "run")
 PROMOTION_STATUSES = {
     "replay_validated_pending_independent_forward_test",
@@ -54,6 +54,160 @@ def proposal_content_digest(proposal: dict[str, Any]) -> str:
             "proposal", "acceptance_mapping", "hard_invariant_check", "evidence_refs", "retained_concerns",
         )
     })
+
+
+def validate_run_cleanup(
+    graph: dict[str, Any], replay: dict[str, Any], evidence: dict[str, Any]
+) -> list[str]:
+    if "reconcile_run_resources" not in replay.get("selected_stages", []):
+        return []
+
+    errors: list[str] = []
+    manifests = [item for item in evidence.get("run_resource_manifest", []) if isinstance(item, dict)]
+    receipts = [item for item in evidence.get("run_cleanup_receipt", []) if isinstance(item, dict)]
+    if len(manifests) != 1:
+        return ["cleanup requires exactly one run_resource_manifest"]
+    if not receipts:
+        return ["cleanup requires at least one run_cleanup_receipt"]
+
+    manifest = manifests[0]
+    run_id = replay.get("run_id")
+    graph_version = graph.get("graph", {}).get("version")
+    if manifest.get("run_id") != run_id or manifest.get("graph_version") != graph_version:
+        errors.append("cleanup manifest must bind the current run and graph version")
+    resources = manifest.get("resources")
+    exact_targets = manifest.get("exact_targets")
+    if not isinstance(resources, list) or not all(isinstance(item, dict) for item in resources):
+        return errors + ["cleanup manifest resources must be a list of typed objects"]
+    resource_ids = [item.get("resource_id") for item in resources]
+    targets = [item.get("target") for item in resources]
+    resource_by_id = {
+        item.get("resource_id"): item
+        for item in resources
+        if isinstance(item.get("resource_id"), str)
+    }
+    if (
+        not all(isinstance(item, str) and item for item in resource_ids + targets)
+        or len(resource_ids) != len(set(resource_ids))
+        or len(targets) != len(set(targets))
+    ):
+        errors.append("cleanup manifest resources need unique non-empty ids and exact targets")
+    if not isinstance(exact_targets, list) or exact_targets != targets:
+        errors.append("cleanup manifest exact_targets must match the ordered resource target list")
+    broad_targets = {"/", "~", "$HOME", "${HOME}", "workspace_root", "filesystem_root", "home_root"}
+    for target in targets:
+        if isinstance(target, str) and (target in broad_targets or any(token in target for token in ("*", "?", "$(", "${"))):
+            errors.append(f"cleanup target is broad or unresolved: {target}")
+
+    manifest_digest = canonical_digest(manifest)
+    allowed_classifications = {
+        "release_without_data_deletion", "destructive_cleanup_requires_confirmation", "preserve_with_reason",
+    }
+    decision_receipts = {
+        item.get("decision_id"): item
+        for item in evidence.get("decision_receipt", [])
+        if isinstance(item, dict) and present(item.get("decision_id"))
+    }
+    destructive_actions = {"delete", "remove_files", "remove_worktree", "remove_environment", "purge_cache"}
+    required_worktree_checks = {
+        "run_owned", "not_primary_workspace", "clean", "no_untracked_files", "commit_pushed",
+        "branch_merged_or_disposal_explicitly_confirmed", "no_active_run_lease",
+    }
+    card_fields = {
+        "what", "targets", "count", "size", "location", "why", "recoverable",
+        "what_would_be_lost", "alternatives",
+    }
+
+    for index, receipt in enumerate(receipts):
+        label = f"cleanup receipt {index}"
+        if (
+            receipt.get("run_id") != run_id
+            or receipt.get("graph_version") != graph_version
+            or receipt.get("resource_manifest_digest") != manifest_digest
+        ):
+            errors.append(f"{label} must bind the current run, graph version, and exact manifest digest")
+        inventory = receipt.get("inventory")
+        classifications = receipt.get("classifications")
+        actions = receipt.get("actions")
+        preserved = receipt.get("preserved_resources")
+        if inventory != resource_ids:
+            errors.append(f"{label} inventory must cover every manifest resource exactly once")
+        if not isinstance(classifications, dict) or set(classifications) != set(resource_ids) or not set(classifications.values()) <= allowed_classifications:
+            errors.append(f"{label} classifications must cover every resource with the closed classification set")
+            destructive_targets: list[str] = []
+        else:
+            target_by_resource = dict(zip(resource_ids, targets))
+            destructive_targets = [
+                target_by_resource[resource_id]
+                for resource_id in resource_ids
+                if classifications[resource_id] == "destructive_cleanup_requires_confirmation"
+            ]
+        if not isinstance(actions, list) or not isinstance(preserved, list):
+            errors.append(f"{label} actions and preserved_resources must be lists")
+            continue
+
+        result = receipt.get("result")
+        card = receipt.get("deletion_card")
+        if result == "confirmation_required":
+            if not isinstance(card, dict) or not card_fields <= set(card) or card.get("targets") != destructive_targets:
+                errors.append(f"{label} needs an exact recoverability card for the current targets")
+            if receipt.get("decision_ref") is not None or actions:
+                errors.append(f"{label} cannot execute destructive cleanup before confirmation")
+            continue
+        if result == "blocked":
+            blocker = receipt.get("blocker")
+            if not isinstance(blocker, dict) or not {"resource_id", "reason", "owner", "unblocker"} <= set(blocker):
+                errors.append(f"{label} must identify the exact cleanup blocker and unblocker")
+            continue
+        if result != "reconciled":
+            errors.append(f"{label} has invalid cleanup result")
+            continue
+
+        action_by_resource = {
+            item.get("resource_id"): item
+            for item in actions
+            if isinstance(item, dict) and present(item.get("resource_id"))
+        }
+        preserved_by_resource = {
+            item.get("resource_id"): item
+            for item in preserved
+            if isinstance(item, dict) and present(item.get("resource_id"))
+        }
+        for resource_id in resource_ids:
+            if (resource_id in action_by_resource) == (resource_id in preserved_by_resource):
+                errors.append(f"{label} must release or preserve resource {resource_id} exactly once")
+                continue
+            if resource_id in preserved_by_resource and not present(preserved_by_resource[resource_id].get("reason")):
+                errors.append(f"{label} preservation for {resource_id} needs a concrete reason")
+            if resource_id in preserved_by_resource and classifications.get(resource_id) != "preserve_with_reason":
+                errors.append(f"{label} preserved resource {resource_id} must use preserve_with_reason")
+            action = action_by_resource.get(resource_id)
+            if action is None:
+                continue
+            if action.get("target") != resource_by_id.get(resource_id, {}).get("target"):
+                errors.append(f"{label} action for {resource_id} changed the exact manifest target")
+            if str(action.get("result", "")).lower() not in PASS_RESULTS:
+                errors.append(f"{label} action for {resource_id} lacks successful verification")
+            if action.get("action") in destructive_actions:
+                decision = decision_receipts.get(receipt.get("decision_ref"))
+                scope = decision.get("scope") if isinstance(decision, dict) else None
+                if (
+                    classifications.get(resource_id) != "destructive_cleanup_requires_confirmation"
+                    or not isinstance(decision, dict)
+                    or str(decision.get("selection", "")).strip().lower() not in {"yes", "do it"}
+                    or not isinstance(scope, dict)
+                    or scope.get("resource_manifest_digest") != manifest_digest
+                    or scope.get("exact_targets") != destructive_targets
+                ):
+                    errors.append(f"{label} destructive action for {resource_id} lacks exact explicit confirmation")
+            elif classifications.get(resource_id) != "release_without_data_deletion":
+                errors.append(f"{label} non-destructive action for {resource_id} has the wrong classification")
+            if action.get("action") == "remove_worktree":
+                checks = action.get("checks")
+                if not isinstance(checks, dict) or not all(checks.get(key) is True for key in required_worktree_checks):
+                    errors.append(f"{label} worktree removal for {resource_id} lacks every safety proof")
+
+    return errors
 
 
 def validate_deliberations(
@@ -889,6 +1043,47 @@ def run_deliberation_self_tests(
     return failures, len(cases)
 
 
+def run_cleanup_self_tests(
+    graph: dict[str, Any], replay: dict[str, Any]
+) -> tuple[list[str], int]:
+    evidence = replay.get("evidence", {})
+    manifests = evidence.get("run_resource_manifest", []) if isinstance(evidence, dict) else []
+    receipts = evidence.get("run_cleanup_receipt", []) if isinstance(evidence, dict) else []
+    if not manifests or not receipts or not manifests[0].get("resources"):
+        return [], 0
+
+    cases: list[tuple[str, dict[str, Any], str]] = []
+
+    broad_target = copy.deepcopy(replay)
+    broad_target["evidence"]["run_resource_manifest"][0]["resources"][0]["target"] = "/"
+    broad_target["evidence"]["run_resource_manifest"][0]["exact_targets"][0] = "/"
+    cases.append(("broad cleanup target", broad_target, "broad or unresolved"))
+
+    stale_digest = copy.deepcopy(replay)
+    stale_digest["evidence"]["run_cleanup_receipt"][-1]["resource_manifest_digest"] = "0" * 64
+    cases.append(("stale cleanup digest", stale_digest, "exact manifest digest"))
+
+    inferred_consent = copy.deepcopy(replay)
+    decision_ref = inferred_consent["evidence"]["run_cleanup_receipt"][-1]["decision_ref"]
+    next(item for item in inferred_consent["evidence"]["decision_receipt"] if item["decision_id"] == decision_ref)["selection"] = "ok"
+    cases.append(("inferred cleanup consent", inferred_consent, "lacks exact explicit confirmation"))
+
+    unsafe_worktree = copy.deepcopy(replay)
+    unsafe_worktree["evidence"]["run_cleanup_receipt"][-1]["actions"][0]["checks"]["clean"] = False
+    cases.append(("unsafe worktree removal", unsafe_worktree, "lacks every safety proof"))
+
+    missing_disposition = copy.deepcopy(replay)
+    missing_disposition["evidence"]["run_cleanup_receipt"][-1]["actions"] = []
+    cases.append(("missing resource disposition", missing_disposition, "release or preserve resource"))
+
+    failures: list[str] = []
+    for name, candidate, expected in cases:
+        case_errors = validate_run_cleanup(graph, candidate, candidate["evidence"])
+        if not any(expected in item for item in case_errors):
+            failures.append(f"cleanup self-test {name!r} did not detect {expected!r}")
+    return failures, len(cases)
+
+
 def validate_replay(graph: dict[str, Any], replay: dict[str, Any]) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     diagnostics: set[str] = set()
@@ -937,6 +1132,8 @@ def validate_replay(graph: dict[str, Any], replay: dict[str, Any]) -> tuple[list
         errors.append("replay must contain exactly one canonical route_card")
     elif route_cards[0].get("run_id") != replay.get("run_id"):
         errors.append("canonical route_card must bind the replay run_id")
+
+    errors.extend(validate_run_cleanup(graph, replay, evidence))
 
     for stage in selected_stages:
         node = nodes.get(stage)
@@ -1120,10 +1317,11 @@ def validate_replay(graph: dict[str, Any], replay: dict[str, Any]) -> tuple[list
     if (
         len(terminal_stages) != 1
         or not evidence.get("run_receipt")
+        or not evidence.get("run_cleanup_receipt")
         or not evidence.get("run_review_receipt")
     ):
         diagnostics.add("terminal_unproven")
-    for evidence_id in ("run_receipt", "run_review_receipt"):
+    for evidence_id in ("run_receipt", "run_cleanup_receipt", "run_review_receipt"):
         if not evidence.get(evidence_id):
             diagnostics.add(f"missing_evidence:{evidence_id}")
 
@@ -1155,7 +1353,7 @@ def main() -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="also prove invalid deliberation receipts are rejected",
+        help="also prove invalid deliberation and cleanup receipts are rejected",
     )
     args = parser.parse_args()
 
@@ -1206,7 +1404,11 @@ def main() -> int:
     self_test_count = 0
     if args.self_test:
         for key, replay, _ in results:
-            failures, count = run_deliberation_self_tests(graph, replay)
+            if replay.get("deliberations"):
+                failures, count = run_deliberation_self_tests(graph, replay)
+                errors.extend(f"{key}: {failure}" for failure in failures)
+                self_test_count += count
+            failures, count = run_cleanup_self_tests(graph, replay)
             errors.extend(f"{key}: {failure}" for failure in failures)
             self_test_count += count
 
@@ -1223,7 +1425,7 @@ def main() -> int:
         for diagnostic in diagnostics:
             print(f"- {diagnostic}")
     if args.self_test:
-        print(f"SELF-TEST: {self_test_count} invalid deliberation receipts rejected")
+        print(f"SELF-TEST: {self_test_count} invalid deliberation or cleanup receipts rejected")
     if args.require_closure and any(diagnostics for _, _, diagnostics in results):
         print("CLOSURE BLOCKED: unresolved run diagnostics")
         return 2

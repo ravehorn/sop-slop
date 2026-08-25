@@ -109,6 +109,75 @@ def validate(graph: dict[str, Any]) -> list[str]:
     if "branch_receipt_ids" not in join_fields:
         errors.append("join_receipt must bind the exact branch receipt IDs it validated")
 
+    cleanup_policy = policies.get("cleanup")
+    if not isinstance(cleanup_policy, dict):
+        errors.append("cleanup policy must be an object")
+        cleanup_policy = {}
+    if cleanup_policy.get("timing") != "after_immutable_delivery_receipt_before_run_review":
+        errors.append("cleanup must run after the delivery receipt and before run review")
+    if cleanup_policy.get("scope") != "resources_created_or_claimed_by_current_run":
+        errors.append("cleanup must be limited to resources created or claimed by the current run")
+    if cleanup_policy.get("ownership_binding") != "run_id_and_exact_resolved_target":
+        errors.append("cleanup ownership must bind the run id and exact resolved target")
+    if set(cleanup_policy.get("classifications", [])) != {
+        "release_without_data_deletion", "destructive_cleanup_requires_confirmation", "preserve_with_reason",
+    }:
+        errors.append("cleanup must classify release, destructive confirmation, or preservation exactly")
+    if cleanup_policy.get("destructive_confirmation") != "exact_recoverability_card_plus_explicit_yes_or_do_it":
+        errors.append("destructive cleanup must require an exact recoverability card and explicit yes or do it")
+    if cleanup_policy.get("confirmation_binding") != "resource_manifest_digest_and_exact_target_list":
+        errors.append("cleanup confirmation must bind the manifest digest and exact target list")
+    if not {
+        "run_owned", "not_primary_workspace", "clean", "no_untracked_files", "commit_pushed",
+        "branch_merged_or_disposal_explicitly_confirmed", "no_active_run_lease",
+    } <= set(cleanup_policy.get("worktree_removal_requires", [])):
+        errors.append("worktree cleanup must prove ownership, cleanliness, remote durability, merge or consent, and no active lease")
+    if not {
+        "dirty", "untracked", "unpushed", "unmerged", "shared", "canonical", "active_lease",
+        "ownership_unknown", "needed_for_resume_or_debug",
+    } <= set(cleanup_policy.get("preserve_when", [])):
+        errors.append("cleanup must preserve dirty, untracked, unpushed, unmerged, shared, canonical, leased, unknown, or needed resources")
+    if not {
+        "filesystem_root", "home_root", "workspace_root", "unresolved_environment_variable", "unresolved_glob",
+        "shared_cache_without_exact_confirmation",
+    } <= set(cleanup_policy.get("forbidden_targets", [])):
+        errors.append("cleanup must forbid broad roots, unresolved targets, and unconfirmed shared caches")
+    if cleanup_policy.get("retry_budget") != "cleanup_attempts":
+        errors.append("cleanup retries must use the cleanup_attempts budget")
+    if cleanup_policy.get("closure") != "every_manifest_resource_released_or_preserved_with_reason_and_cleanup_receipt_recorded":
+        errors.append("cleanup closure must reconcile every manifest resource")
+
+    manifest_fields = set(evidence.get("run_resource_manifest", {}).get("required_fields", []))
+    if not {
+        "run_id", "graph_version", "resources", "ownership", "exact_targets", "creation_receipts",
+        "disposal_intent", "issuer", "created_at", "updated_at",
+    } <= manifest_fields:
+        errors.append("run_resource_manifest must bind exact run-owned resources and creation evidence")
+    cleanup_fields = set(evidence.get("run_cleanup_receipt", {}).get("required_fields", []))
+    if not {
+        "run_id", "graph_version", "resource_manifest_digest", "inventory", "classifications", "actions",
+        "preserved_resources", "deletion_card", "decision_ref", "result", "verification", "blocker", "actor", "created_at",
+    } <= cleanup_fields:
+        errors.append("run_cleanup_receipt must bind inventory, decisions, actions, preservation, and verification")
+    cleanup_node_id = meta.get("cleanup_node")
+    cleanup_node = nodes.get(cleanup_node_id, {})
+    if cleanup_node_id != "reconcile_run_resources" or cleanup_node.get("executor") != {
+        "kind": "deterministic", "id": "run_resource_reconciler",
+    }:
+        errors.append("graph cleanup_node must use the deterministic run_resource_reconciler")
+    cleanup_completion = cleanup_node.get("completion", {})
+    if cleanup_completion.get("predicate") != "run_cleanup_recorded" or set(cleanup_completion.get("evidence", [])) != {
+        "run_resource_manifest", "run_cleanup_receipt",
+    }:
+        errors.append("cleanup node must complete from the typed resource manifest and cleanup receipt")
+    cleanup_decision = nodes.get("request_cleanup_authority", {})
+    if cleanup_decision.get("kind") != "decision" or cleanup_decision.get("executor") != {
+        "kind": "human", "id": "codex_picker",
+    }:
+        errors.append("destructive cleanup must use one explicit Codex picker decision")
+    if "run_cleanup_receipt" not in nodes.get(meta.get("review_node"), {}).get("inputs", []):
+        errors.append("run review must evaluate the cleanup receipt")
+
     required_roles = {"explorer", "implementation_worker", "reviewer", "qa_tester"}
     if set(specialist_roles) != required_roles:
         errors.append("specialist roles must be exactly explorer, implementation_worker, reviewer, and qa_tester")
@@ -364,11 +433,18 @@ def validate(graph: dict[str, Any]) -> list[str]:
         },
         "aligned_release_autonomy": {
             "nested_final_returns_to_controller", "controller_selects_version", "no_release_reconfirmation",
-            "production_verified_before_close", "run_review_before_terminal",
+            "production_verified_before_close", "cleanup_before_review", "run_review_before_terminal",
+        },
+        "run_cleanup_is_bounded_and_loss_safe": {
+            "current_run_scope_only", "exact_resolved_targets_only",
+            "dirty_untracked_unpushed_unmerged_shared_and_unknown_resources_preserved",
+            "broad_roots_and_globs_forbidden", "destructive_cleanup_requires_digest_bound_explicit_yes",
+            "empty_or_prior_consent_rejected", "worktree_removal_proves_clean_pushed_merged_and_unleased",
+            "every_manifest_resource_has_disposition", "cleanup_retry_bounded", "cleanup_before_review",
         },
     }
     if set(policy_traces) != set(required_policy_assertions):
-        errors.append("policy traces must cover generic deliberation, annotation batches, side quests, and aligned release autonomy")
+        errors.append("policy traces must cover deliberation, annotation batches, side quests, release autonomy, and bounded cleanup")
     for trace_id, required_assertions in required_policy_assertions.items():
         trace = policy_traces.get(trace_id, {})
         if not isinstance(trace.get("events"), list) or not trace.get("events"):
@@ -603,6 +679,7 @@ def validate(graph: dict[str, Any]) -> list[str]:
         "missing_release_authority_blocks_before_action",
         "compound_production_release",
         "confirmed_late_invariant_breach_fails",
+        "destructive_cleanup_requires_exact_confirmation",
     }
     for trace_id in sorted(required_traces - trace_ids):
         errors.append(f"missing required trace scenario: {trace_id}")
@@ -683,6 +760,8 @@ def validate(graph: dict[str, Any]) -> list[str]:
                 errors.append(f"terminal {node_id} must not have outgoing edges")
             if "run_review_receipt" not in (completion or {}).get("evidence", []):
                 errors.append(f"terminal {node_id} must require run_review_receipt")
+            if "run_cleanup_receipt" not in (completion or {}).get("evidence", []):
+                errors.append(f"terminal {node_id} must require run_cleanup_receipt")
         elif not outgoing[node_id]:
             errors.append(f"non-terminal node {node_id} has no outgoing edge")
         if (completion or {}).get("predicate") == "external_action_recorded":
@@ -1095,8 +1174,21 @@ def validate(graph: dict[str, Any]) -> list[str]:
             if edge.get("from") != review_node:
                 errors.append(f"terminal {terminal} bypasses mandatory review node {review_node}")
     receipt_node = meta.get("run_receipt_node")
-    if not any(edge.get("from") == receipt_node and edge.get("to") == review_node for edge in edges.values()):
-        errors.append("run receipt must flow to the mandatory review node")
+    cleanup_node_id = meta.get("cleanup_node")
+    if not any(edge.get("from") == receipt_node and edge.get("to") == cleanup_node_id for edge in edges.values()):
+        errors.append("run receipt must flow to the mandatory cleanup node")
+    if not any(edge.get("from") == cleanup_node_id and edge.get("to") == review_node for edge in edges.values()):
+        errors.append("cleanup must flow to mandatory run review")
+    if any(edge.get("from") == receipt_node and edge.get("to") == review_node for edge in edges.values()):
+        errors.append("run receipt must not bypass cleanup")
+    cleanup_retry = edges.get("cleanup_authority_to_cleanup", {})
+    if (
+        cleanup_retry.get("from") != "request_cleanup_authority"
+        or cleanup_retry.get("to") != cleanup_node_id
+        or cleanup_retry.get("type") != "recovery"
+        or cleanup_retry.get("budget") != "cleanup_attempts"
+    ):
+        errors.append("destructive cleanup retry must be one bounded return to the cleanup node")
     valid_delivery_statuses = {"completed", "blocked", "failed"}
     for edge_id, edge in edges.items():
         if edge.get("to") == receipt_node:
@@ -1204,6 +1296,30 @@ def self_test(graph: dict[str, Any]) -> tuple[list[str], int]:
     review_bypass = copy.deepcopy(graph)
     review_bypass["edges"].append({"id": "bypass_review", "from": "record_run_receipt", "to": "run_completed", "guard": "run_status_completed", "type": "complete"})
     cases.append(("review bypass", review_bypass, "bypasses mandatory review"))
+
+    cleanup_bypass = copy.deepcopy(graph)
+    next(edge for edge in cleanup_bypass["edges"] if edge["id"] == "receipt_to_cleanup")["to"] = "review_run"
+    cases.append(("cleanup bypass", cleanup_bypass, "mandatory cleanup node"))
+
+    cross_run_cleanup = copy.deepcopy(graph)
+    cross_run_cleanup["policies"]["cleanup"]["scope"] = "all_visible_workspaces"
+    cases.append(("cross-run cleanup", cross_run_cleanup, "current run"))
+
+    broad_cleanup_target = copy.deepcopy(graph)
+    broad_cleanup_target["policies"]["cleanup"]["forbidden_targets"].remove("workspace_root")
+    cases.append(("broad cleanup target", broad_cleanup_target, "forbid broad roots"))
+
+    inferred_cleanup_consent = copy.deepcopy(graph)
+    inferred_cleanup_consent["policies"]["cleanup"]["destructive_confirmation"] = "standing_cleanup_preference"
+    cases.append(("inferred cleanup consent", inferred_cleanup_consent, "explicit yes or do it"))
+
+    unbounded_cleanup_retry = copy.deepcopy(graph)
+    next(edge for edge in unbounded_cleanup_retry["edges"] if edge["id"] == "cleanup_authority_to_cleanup").pop("budget")
+    cases.append(("unbounded cleanup retry", unbounded_cleanup_retry, "needs a budget"))
+
+    terminal_without_cleanup = copy.deepcopy(graph)
+    next(node for node in terminal_without_cleanup["nodes"] if node["id"] == "run_completed")["completion"]["evidence"].remove("run_cleanup_receipt")
+    cases.append(("terminal without cleanup", terminal_without_cleanup, "must require run_cleanup_receipt"))
 
     undefined_predicate = copy.deepcopy(graph)
     undefined_predicate["predicate_definitions"].pop("stage_completed")

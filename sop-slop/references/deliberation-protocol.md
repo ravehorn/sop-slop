@@ -89,7 +89,7 @@ Run both fixtures:
 
 ```bash
 python3 scripts/validate_run_replay.py --scenario forward_test --require-closure
-python3 scripts/validate_run_replay.py references/deliberation-forward-test-fixture-0.5.0.json --scenario forward_test --require-closure
+python3 scripts/validate_run_replay.py references/deliberation-forward-test-fixture-0.6.0.json --scenario forward_test --require-closure
 ```
 
 The deliberation fixture proves reuse from design and engineering callers, Luna/max enforcement, peer influence, objection-driven revision, exact return binding, bounded rounds, and zero writers.

@@ -128,11 +128,23 @@ _Avoid_: Peer swarm
 The synchronization point that evaluates the evidence returned by every required branch of an explicit fork before the workflow can advance.
 
 **Run Receipt**:
-The final audit record of a workflow run's decisions, transitions, evidence, authority use, and outcome, intended to support later policy learning.
+The immutable delivery audit record of a workflow run's decisions, transitions, evidence, authority use, and delivery outcome, recorded before resource cleanup and later policy learning.
 _Avoid_: Product source of truth
 
+**Run Resource Manifest**:
+The exact, current-run-owned inventory of worktrees, temporary workspaces, processes, ports, environments, caches, leases, and other resources created or explicitly claimed during the run.
+_Avoid_: Whole-machine cleanup scan, category-based deletion list
+
+**Run Cleanup Receipt**:
+The manifest-digest-bound record of resource inventory, classification, action, preservation, destructive confirmation, blockers, and verification produced before run review.
+_Avoid_: “Cleaned up” status message, inferred deletion authority
+
+**Resource Reconciliation**:
+The finalization stage that releases safe current-run resources, preserves anything still needed or not provably disposable, and routes exact destructive targets through one recoverability-card decision.
+_Avoid_: `rm -rf`, deleting by age, deleting every cache or worktree
+
 **Run Review**:
-The required post-run evaluation of a run receipt against the ordered workflow goals. It classifies the root cause as no issue, executor issue, graph issue, or policy issue.
+The required post-run evaluation of the delivery and cleanup receipts against the ordered workflow goals. It classifies the root cause as no issue, executor issue, graph issue, or policy issue.
 _Avoid_: Weekly retrospective
 
 **Effective Status**:

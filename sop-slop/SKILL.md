@@ -256,9 +256,19 @@ Treat `/ship` and `/land-and-deploy` as atomic at their documented executor boun
 
 Atomic does not mean unstoppable. Preserve every documented upstream safety stop. If a compound executor reaches first-run setup, failed readiness, merge conflict, permission failure, unhealthy deployment, or another skill-defined stop, it returns `blocked` or `failed` evidence to its outer node. The authority envelope never bypasses those checks.
 
+## Run resource cleanup
+
+After the immutable delivery receipt and before the automatic run review, execute `reconcile_run_resources` for completed, blocked, and failed runs. Maintain one `run_resource_manifest` for worktrees, temporary workspaces, processes, ports, environments, caches, leases, and other resources created or explicitly claimed by the current run. The cleanup receipt must bind the current run, graph version, and exact manifest digest.
+
+Automatically release only actions that do not delete data, such as stopping a run-owned process, releasing its port or lease, and pruning stale worktree metadata whose live files are already absent. Never target `/`, a home or workspace root, unresolved variables, command substitutions, globs, or a shared cache. Preserve anything dirty, untracked, unpushed, unmerged, shared, canonical, actively leased, ownership-unknown, or needed to resume or debug the run.
+
+Removing a worktree, environment, cache, or files is destructive cleanup even when it appears regenerable. Inspect the exact target, then present one recoverability card with target list, count, size, location, reason, recovery path, what would be lost, and alternatives. Continue only from a non-empty `yes` or `do it` decision receipt bound to that manifest digest and exact target list. A worktree additionally requires proof that it belongs to this run, is not the primary workspace, is clean with no untracked files, has a pushed commit, is merged or explicitly approved for disposal, and has no active run lease.
+
+Cleanup is reconciled when every manifest resource is either released and verified or preserved with a concrete reason it remains needed. A declined exact deletion closes the cleanup request as blocked without changing the immutable delivery status; an unanswered picker remains unanswered. Cleanup retries are bounded by `cleanup_attempts`.
+
 ## Run review and learning
 
-Every completed, blocked, or failed workflow run must produce an immutable run receipt and then an automatic run review before closing. Review in this order:
+Every completed, blocked, or failed workflow run must produce an immutable delivery receipt, a cleanup receipt, and then an automatic run review before closing. Review in this order:
 
 1. hard safety and truth constraints
 2. requested outcome correctness
@@ -285,8 +295,8 @@ The temporary document is diagnostic input, not a new source of workflow truth. 
 
 Every observed transition names its exact `edge_id`; transitions from a closed-outcome node also record the selected `outcome`. A source/target pair alone is insufficient because multiple guarded edges may share the same nodes. A `resolve_candidate` transition additionally names the exact `join_id`, whose receipt binds the frozen subject and exact branch receipt IDs.
 
-Use [references/forward-test-fixture-0.5.0.json](references/forward-test-fixture-0.5.0.json) as the public synthetic annotation-batch forward-test fixture for this diagnostic.
+Use [references/forward-test-fixture-0.6.0.json](references/forward-test-fixture-0.6.0.json) as the public synthetic annotation-batch and cleanup forward-test fixture for this diagnostic.
 
 ## Completion
 
-Report the graph version, lane, primary mission, stages run and skipped, linked side-quest tasks, evidence for the requested completion target, run-review result, and the exact next gate if blocked. Never imply that downstream stages ran merely because they were listed. For an implementation run targeting `production_verified`, a local candidate, commit, PR, merge, or ready deployment is progress, not completion.
+Report the graph version, lane, primary mission, stages run and skipped, linked side-quest tasks, evidence for the requested completion target, cleanup disposition, run-review result, and the exact next gate if blocked. Never imply that downstream stages ran merely because they were listed. For an implementation run targeting `production_verified`, a local candidate, commit, PR, merge, or ready deployment is progress, not completion.

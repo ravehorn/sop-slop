@@ -10,8 +10,9 @@ Use a supervised outcome graph. Nodes describe results, not agents. Named guards
 
 ```text
 intake -> alignment -> spec and reviews -> vertical slices
-       -> candidate fork/join -> release gates -> run receipt -> run review
-                                                            -> proposal?
+       -> candidate fork/join -> release gates -> delivery receipt
+       -> bounded resource cleanup -> run review -> terminal
+                                         -> proposal?
 ```
 
 Annotation-heavy reviews enter through a bounded parent queue before the ordinary lifecycle:
@@ -74,6 +75,7 @@ eligible caller + frozen request
 12. As the operator, I want a large annotation batch reduced to its real underlying problems, so that repeated observations strengthen one diagnosis instead of creating duplicate work.
 13. As the operator, I want every accepted annotation problem to exist in the canonical general task list and be checked off only from validated delivery evidence, so that work remains durable outside the conversation.
 14. As the operator, I want material product, design, engineering, review, QA, or learning judgments challenged by specialists who respond to one another, so that the result reflects real peer influence without creating a second controller or losing the parent mission.
+15. As the operator, I want each run to release its own temporary resources before closure, while preserving user work and requiring exact confirmation before any destructive cleanup.
 
 ## Core decisions
 
@@ -111,6 +113,10 @@ eligible caller + frozen request
 - Once an alignment lock exists, the controller auto-decides reversible technical, implementation, testing, version-tier, and routine release-mechanics choices. Human questions remain only for locked behavior or scope changes, authority/security/data expansion, destructive or hard-to-reverse actions, meaningful spend or external communication, and production-target changes.
 - A nested skill's final response is evidence returned to the controller, not a workflow terminal.
 - Every edge entering `record_run_receipt` explicitly sets delivery status to `completed`, `blocked`, or `failed`; no terminal meaning is inferred from prose or node names.
+- Every delivery receipt flows through one run-resource reconciler before learning review. Cleanup is limited to exact resources created or claimed by the current run and binds its receipt to the manifest digest.
+- Dirty, untracked, unpushed, unmerged, shared, canonical, leased, ownership-unknown, recovery, and debug resources are preserved with reasons. Broad roots, unresolved variables, substitutions, globs, and unconfirmed shared caches are forbidden targets.
+- Process, port, and lease release may proceed when it does not delete data. File, worktree, environment, or cache deletion requires one exact recoverability card and a digest-bound explicit `yes` or `do it`; standing preferences and empty picker results do not count.
+- Worktree removal additionally proves run ownership, a non-primary workspace, clean and tracked state, pushed commit durability, merge or exact disposal consent, and no active lease. Cleanup retry is bounded.
 - Human overrides are scoped, expiring exceptions. Hard safety, truth, tenant, data-loss, and authority invariants are not overridable.
 
 ## Delegation execution
@@ -151,6 +157,7 @@ The visible information order is:
 | Revision | failed evidence, owning stage, invalidated downstream evidence, and bounded back-edge | repair runs against the same requested outcome |
 | Blocked | exact failed or unknown guard, missing fact or authority, owner, and proposed smallest unblocker | run waits or closes blocked without guessing |
 | Failed | non-recoverable reason, preserved evidence, and available recovery boundary | run closes failed after review |
+| Cleanup | exact run-owned inventory, resources released, resources preserved with reasons, and one recoverability card only if deletion is required | controller verifies reconciliation or asks once for the exact destructive target list |
 | Completed | requested completion level, strongest evidence, stages skipped, run-review result, and proposal if any | run closes; a proposal may start a linked successor run |
 
 The journey should feel oriented at intake, in control at decisions, informed during revision, able to act when blocked, and confident at completion. Status meaning must be present in text, never color alone. Picker labels stay short, keyboard-accessible through the native Codex control, and equivalent typed choices appear once when the picker is unavailable.
@@ -159,7 +166,7 @@ Buzz is a target control-room projection and decision relay, not a transition au
 
 ## Run review and improvement
 
-Every terminal attempt passes through `record_run_receipt` and `review_run`.
+Every terminal attempt passes through `record_run_receipt`, `reconcile_run_resources`, and `review_run`.
 
 The review uses an ordered objective rather than a blended score:
 
@@ -193,7 +200,7 @@ V0 is proposal-only. Before executable historical scenario replay and an indepen
 
 ## Product-change lane
 
-`wayfinder? -> grill-with-docs? -> office-hours? -> plan-ceo-review -> to-spec -> plan-design-review? -> plan-eng-review -> task SSOT/to-tickets? -> implement -> review -> qa? -> ship -> land-and-deploy`
+`wayfinder? -> grill-with-docs? -> office-hours? -> plan-ceo-review -> to-spec -> plan-design-review? -> plan-eng-review -> task SSOT/to-tickets? -> implement -> review -> qa? -> ship -> land-and-deploy -> resource cleanup -> run review`
 
 | Stage | Required input | Completion evidence | Skip rule |
 | --- | --- | --- | --- |
@@ -255,6 +262,7 @@ After validation, supervise representative traces containing these behaviors:
 8. an aligned implementation run auto-decides its version and reaches production verification without repeat ship or deploy confirmation
 9. an annotation batch maps every observation, groups duplicate evidence, creates or reuses one canonical task per problem, executes two problems sequentially, and closes only after both child receipts synchronize task status
 10. design and engineering callers reuse one deliberation template; peers receive and answer one another, an evidence-based objection causes bounded revision, Luna/max is enforced, and both results return to their exact callers
+11. run cleanup inventories only current-run resources, preserves unsafe or still-needed work, rejects broad targets and inferred consent, and removes a worktree only after exact confirmation plus every cleanliness, durability, and lease proof
 
 Upstream skills retain their own tests. A predicate evaluator, workflow runtime, distributed lease manager, and persistent ledger are out of scope for v0.
 
@@ -274,6 +282,7 @@ STRUCTURAL CHECKS                              SUPERVISED TRACE
 [tested] late hard-invariant downgrade
 [tested] delegation role, receipt, freshness, controller, and writer-isolation policy
 [tested] generic deliberation registry, Luna/max, bounded discussion, hard guards, and exact return binding
+[tested] current-run cleanup scope, exact target binding, preservation guards, explicit destructive confirmation, and bounded retry
 ```
 
 ## Failure modes
@@ -300,6 +309,10 @@ STRUCTURAL CHECKS                              SUPERVISED TRACE
 | deliberation tries to replace its caller | run, node, input digest, profile version, or return node differs from the request | reject the return and preserve the parent mission and suspended caller | invalid return receipt; no parent transition |
 | objection is treated as a vote | objection lacks a violated requirement or missing evidence, or majority count selects the result | route to revision, evidence, one material human decision, or block | dissent remains visible and no vote grants acceptance |
 | deliberation reaches a hard gate | proposal conflicts with safety, truth, tenant/security, release authority, required verification, or failed ship/deploy evidence | return fatal or blocked; never waive the gate | exact invariant conflict and caller remain visible |
+| cleanup scopes by category or location | target lacks current-run ownership and an exact resolved identity | preserve it and reject the receipt | no broad or cross-run deletion |
+| cleanup mistakes dirty or unmerged work for waste | git/workspace proof fails a preservation guard | retain the resource with the exact reason | delivery evidence stays available for resume or recovery |
+| destructive cleanup relies on standing intent or an empty picker | decision receipt does not bind the current manifest digest and exact targets with `yes` or `do it` | stop at one recoverability card | no inferred deletion authority |
+| cleanup action or verification fails | exact run-owned resource remains unresolved | preserve it, record the blocker, and close effective status as blocked or failed according to the delivery and safety evidence | immutable delivery status remains separate from cleanup closure |
 
 ## Implementation strategy
 
@@ -350,6 +363,7 @@ Verdict: accepted for supervised v0; no unresolved activation blocker in the gra
 - Terminal truth: every receipt edge explicitly sets delivery status, while review effective status may only downgrade a confirmed hard-invariant breach to failed.
 - Learning safety: v0 is proposal-only; pre-unlock future auto-promotion is limited to presentation and diagnostics. Semantic graph promotion remains human-approved until executable replay and an independent evaluator exist.
 - Deliberation safety: one generic profile-driven child protocol returns only to its exact caller; Luna/max peers challenge one another within two rounds, while the controller and hard guards retain authority.
+- Cleanup safety: one manifest-bound finalizer covers completed, blocked, and failed runs; it preserves uncertain or valuable state, forbids broad targets, and requires exact explicit confirmation before destructive cleanup.
 - Verification: the standard-library graph validator, negative self-tests, annotation replay, two-profile deliberation replay, skill validation, and independent semantic forward test are required before activation.
 
 Deferred target capabilities are not active-v0 blockers: a durable workflow runtime, Buzz/Hermes wiring, stoppable fine-grained release adapters, historical semantic replay, and semantic auto-promotion.

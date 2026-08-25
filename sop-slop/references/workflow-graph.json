@@ -2,11 +2,12 @@
   "schema_version": 1,
   "graph": {
     "id": "product-sop",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "activation": "supervised",
     "start": "intake_run",
     "terminals": ["run_completed", "run_blocked", "run_failed"],
     "run_receipt_node": "record_run_receipt",
+    "cleanup_node": "reconcile_run_resources",
     "review_node": "review_run"
   },
   "executor_kinds": ["controller", "human", "skill", "worker", "deterministic"],
@@ -141,6 +142,21 @@
       "budget_source": "authority_envelope",
       "on_exhaustion": "blocked"
     },
+    "cleanup": {
+      "timing": "after_immutable_delivery_receipt_before_run_review",
+      "scope": "resources_created_or_claimed_by_current_run",
+      "inventory_sources": ["run_resource_manifest", "git_worktree_state", "process_and_port_state", "workspace_status", "cache_and_environment_state"],
+      "ownership_binding": "run_id_and_exact_resolved_target",
+      "classifications": ["release_without_data_deletion", "destructive_cleanup_requires_confirmation", "preserve_with_reason"],
+      "automatic_actions": ["stop_run_owned_process", "release_run_owned_port", "revoke_run_scoped_lease", "prune_stale_worktree_metadata_without_live_files"],
+      "destructive_confirmation": "exact_recoverability_card_plus_explicit_yes_or_do_it",
+      "confirmation_binding": "resource_manifest_digest_and_exact_target_list",
+      "worktree_removal_requires": ["run_owned", "not_primary_workspace", "clean", "no_untracked_files", "commit_pushed", "branch_merged_or_disposal_explicitly_confirmed", "no_active_run_lease"],
+      "preserve_when": ["dirty", "untracked", "unpushed", "unmerged", "shared", "canonical", "active_lease", "ownership_unknown", "needed_for_resume_or_debug"],
+      "forbidden_targets": ["filesystem_root", "home_root", "workspace_root", "unresolved_environment_variable", "unresolved_glob", "shared_cache_without_exact_confirmation"],
+      "retry_budget": "cleanup_attempts",
+      "closure": "every_manifest_resource_released_or_preserved_with_reason_and_cleanup_receipt_recorded"
+    },
     "learning": {
       "review_every_closed_run": true,
       "objective_order": [
@@ -249,6 +265,10 @@
       "required_fields": ["allowed_actions", "forbidden_actions", "resources", "environments", "limits", "expires_at"]
     },
     {
+      "id": "run_resource_manifest",
+      "required_fields": ["run_id", "graph_version", "resources", "ownership", "exact_targets", "creation_receipts", "disposal_intent", "issuer", "created_at", "updated_at"]
+    },
+    {
       "id": "annotation_problem_ledger",
       "required_fields": ["batch_id", "primary_mission", "source_revision", "annotation_ids", "annotation_count", "observation_records", "problem_clusters", "coverage_map", "clarification_queue", "execution_order", "task_refs", "status_counts", "issuer", "created_at", "updated_at"]
     },
@@ -321,6 +341,10 @@
       "required_fields": ["run_id", "graph_version", "status", "decisions", "transitions", "evidence_refs", "authority_use", "started_at", "closed_at"]
     },
     {
+      "id": "run_cleanup_receipt",
+      "required_fields": ["run_id", "graph_version", "resource_manifest_digest", "inventory", "classifications", "actions", "preserved_resources", "deletion_card", "decision_ref", "result", "verification", "blocker", "actor", "created_at"]
+    },
+    {
       "id": "run_review_receipt",
       "required_fields": ["run_id", "graph_version", "review_status", "delivery_status", "effective_status", "objective_results", "root_cause_class", "review_error", "proposal_ref", "reviewer", "created_at"]
     },
@@ -353,8 +377,9 @@
     {"id": "compound_release_recorded", "kind": "completion", "inputs": ["external_action_receipt", "verification_receipt", "authority_envelope"]},
     {"id": "release_target_classified", "kind": "completion", "inputs": ["route_card", "external_action_receipt"]},
     {"id": "run_receipt_recorded", "kind": "completion", "inputs": ["run_receipt"]},
-    {"id": "run_review_recorded", "kind": "completion", "inputs": ["run_receipt", "run_review_receipt"]},
-    {"id": "run_closed", "kind": "completion", "inputs": ["run_review_receipt"]},
+    {"id": "run_cleanup_recorded", "kind": "completion", "inputs": ["run_receipt", "run_resource_manifest", "run_cleanup_receipt"]},
+    {"id": "run_review_recorded", "kind": "completion", "inputs": ["run_receipt", "run_cleanup_receipt", "run_review_receipt"]},
+    {"id": "run_closed", "kind": "completion", "inputs": ["run_cleanup_receipt", "run_review_receipt"]},
     {"id": "stage_completed", "kind": "guard", "inputs": ["state.current_stage", "state.current_completion_receipt"]},
     {"id": "annotation_batch_present", "kind": "guard", "inputs": ["state.annotations", "route_card"]},
     {"id": "annotation_batch_absent", "kind": "guard", "inputs": ["state.annotations", "route_card"]},
@@ -405,9 +430,14 @@
     {"id": "authority_denied", "kind": "guard", "inputs": ["decision_receipt"]},
     {"id": "ship_reaches_requested_level", "kind": "guard", "inputs": ["route_card", "external_action_receipt"]},
     {"id": "ship_requires_land_and_deploy", "kind": "guard", "inputs": ["route_card", "external_action_receipt"]},
-    {"id": "run_status_completed", "kind": "guard", "inputs": ["run_receipt", "run_review_receipt"]},
-    {"id": "run_status_blocked", "kind": "guard", "inputs": ["run_receipt", "run_review_receipt"]},
-    {"id": "run_status_failed", "kind": "guard", "inputs": ["run_receipt", "run_review_receipt"]},
+    {"id": "cleanup_reconciled", "kind": "guard", "inputs": ["run_resource_manifest", "run_cleanup_receipt"]},
+    {"id": "cleanup_confirmation_required", "kind": "guard", "inputs": ["run_resource_manifest", "run_cleanup_receipt", "decision_receipt"]},
+    {"id": "cleanup_blocked", "kind": "guard", "inputs": ["run_resource_manifest", "run_cleanup_receipt"]},
+    {"id": "cleanup_authority_granted", "kind": "guard", "inputs": ["run_cleanup_receipt", "decision_receipt"]},
+    {"id": "cleanup_authority_denied", "kind": "guard", "inputs": ["run_cleanup_receipt", "decision_receipt"]},
+    {"id": "run_status_completed", "kind": "guard", "inputs": ["run_receipt", "run_cleanup_receipt", "run_review_receipt"]},
+    {"id": "run_status_blocked", "kind": "guard", "inputs": ["run_receipt", "run_cleanup_receipt", "run_review_receipt"]},
+    {"id": "run_status_failed", "kind": "guard", "inputs": ["run_receipt", "run_cleanup_receipt", "run_review_receipt"]},
     {"id": "entry_stage_is_align_strategy", "kind": "guard", "inputs": ["route_card"]},
     {"id": "entry_stage_is_validate_strategy_opportunity", "kind": "guard", "inputs": ["route_card"]},
     {"id": "entry_stage_is_record_strategy_decision", "kind": "guard", "inputs": ["route_card"]},
@@ -452,8 +482,8 @@
     "compound_release_recorded": "True only when the compound executor records every attempted external action, final result, verification result, authority used, and exact subject revision.",
     "release_target_classified": "True only when a successful ship receipt is current and the route card selects exactly one next outcome: stop at the change request or invoke land-and-deploy.",
     "run_receipt_recorded": "True only when an immutable receipt records graph version, status, decisions, transitions, evidence references, authority use, and timestamps.",
-    "run_review_recorded": "True when either a normal ordered-objective review is complete or a degraded receipt records review_error, policy_issue, no proposal, and preserves delivery_status as effective_status; a confirmed hard-invariant breach preserves the delivery receipt and sets effective_status to failed.",
-    "run_closed": "True only when the terminal status matches the reviewed run receipt and the run review receipt is retained.",
+    "run_review_recorded": "True when the reviewer evaluates both the immutable delivery receipt and cleanup receipt and either completes the ordered-objective review or emits a degraded receipt that records review_error, policy_issue, no proposal, and preserves delivery_status as effective_status; a confirmed hard-invariant breach preserves the delivery receipt and sets effective_status to failed.",
+    "run_closed": "True only when the terminal status matches the reviewed effective status and both the cleanup and run-review receipts are retained.",
     "stage_completed": "True only when the current node's declared completion predicate is true using current, non-stale required evidence.",
     "annotation_batch_present": "True only when the request explicitly supplies an annotation batch or contains multiple annotations whose shared parent mission is review and resolution.",
     "annotation_batch_absent": "True only when annotation_batch_present is false for evidenced ordinary intake.",
@@ -504,9 +534,15 @@
     "authority_denied": "True only when the human explicitly refuses the requested authority; unanswered is neither granted nor denied.",
     "ship_reaches_requested_level": "True only when ship succeeded and the requested completion level is the verified change request produced by ship.",
     "ship_requires_land_and_deploy": "True only when ship succeeded, its exact remote revision is current, and the requested completion level requires merge and deployment.",
-    "run_status_completed": "True only when run_review_receipt.effective_status equals completed and delivery_status was not upgraded from a less safe status.",
-    "run_status_blocked": "True only when run_review_receipt.effective_status equals blocked and its exact unresolved gate and proposed unblocker are recorded.",
-    "run_status_failed": "True only when run_review_receipt.effective_status equals failed and preserved evidence identifies either the delivery failure or a confirmed post-run hard-invariant breach.",
+    "run_cleanup_recorded": "True only when one receipt binds the current run and graph version to the exact digest of its resource manifest, inventories and classifies every manifest resource, and records exactly one of verified action or preservation, an exact pre-action recoverability card, or an exact blocker without using a broad or unresolved target.",
+    "cleanup_reconciled": "True only when run_cleanup_receipt.result equals reconciled, every exact run-owned resource is either released and verified or preserved with a concrete reason that it remains needed, and no destructive cleanup target lacks its digest-bound confirmation receipt.",
+    "cleanup_confirmation_required": "True only when run_cleanup_receipt.result equals confirmation_required, no matching decision receipt exists, and its deletion card names the exact target list, count, size, location, reason, recoverability, loss, and safer alternatives.",
+    "cleanup_blocked": "True only when run_cleanup_receipt.result equals blocked and it records the exact resource that could not be inventoried or safely released, the failed verification, owner, and smallest unblocker.",
+    "cleanup_authority_granted": "True only when a non-empty human decision selects exactly yes or do it and binds the current resource-manifest digest, deletion card, and exact resolved target list; prior, broad, inferred, or empty consent is invalid.",
+    "cleanup_authority_denied": "True only when the human explicitly refuses the exact cleanup card; unanswered is neither granted nor denied and every target remains preserved.",
+    "run_status_completed": "True only when run_review_receipt.effective_status equals completed, delivery_status was not upgraded from a less safe status, and the current cleanup receipt is reconciled.",
+    "run_status_blocked": "True only when run_review_receipt.effective_status equals blocked and its exact unresolved delivery or cleanup gate and proposed unblocker are recorded.",
+    "run_status_failed": "True only when run_review_receipt.effective_status equals failed and preserved evidence identifies either the delivery failure, a confirmed post-run hard-invariant breach, or a cleanup failure that made safe closure impossible.",
     "entry_stage_is_align_strategy": "True only when routing is unambiguous and route_card.entry_stage equals align_strategy.",
     "entry_stage_is_validate_strategy_opportunity": "True only when routing is unambiguous and route_card.entry_stage equals validate_strategy_opportunity.",
     "entry_stage_is_record_strategy_decision": "True only when routing is unambiguous and route_card.entry_stage equals record_strategy_decision.",
@@ -686,11 +722,13 @@
     {"id": "ship_change", "kind": "outcome", "lane": "release", "executor": {"kind": "skill", "id": "ship"}, "inputs": ["artifact_receipt", "verification_receipt", "authority_envelope", "state.repository_revision"], "outcome": "Run the existing ship skill as one atomic executor through its verified change request, only after commit, push, and change-request authority are complete.", "completion": {"predicate": "compound_release_recorded", "evidence": ["external_action_receipt", "verification_receipt", "authority_envelope"]}, "invalidated_by": ["repository_revision_changed", "authority_envelope_changed"]},
     {"id": "resolve_ship_success", "kind": "outcome", "lane": "release", "executor": {"kind": "deterministic", "id": "release_target_resolver"}, "inputs": ["route_card", "external_action_receipt"], "outcome": "After a successful ship run, stop at the verified change request or continue to land-and-deploy according to the requested completion level.", "completion": {"predicate": "release_target_classified", "evidence": ["route_card", "external_action_receipt"]}, "invalidated_by": ["requested_completion_changed", "ship_receipt_changed"]},
     {"id": "land_and_deploy_change", "kind": "outcome", "lane": "release", "executor": {"kind": "skill", "id": "land-and-deploy"}, "inputs": ["external_action_receipt", "verification_receipt", "authority_envelope", "state.deploy_path"], "outcome": "Run the existing land-and-deploy skill as one atomic executor through merge, deployment, verification, and its bounded recovery behavior.", "completion": {"predicate": "compound_release_recorded", "evidence": ["external_action_receipt", "verification_receipt", "authority_envelope"]}, "invalidated_by": ["ship_receipt_changed", "deploy_path_changed", "authority_envelope_changed"]},
-    {"id": "record_run_receipt", "kind": "outcome", "lane": "close", "executor": {"kind": "controller", "id": "run_receipt_recorder"}, "inputs": ["state.run_history", "state.final_status", "authority_envelope"], "outcome": "Record immutable decisions, transitions, evidence, authority use, and final status.", "completion": {"predicate": "run_receipt_recorded", "evidence": ["run_receipt"]}, "invalidated_by": []},
-    {"id": "review_run", "kind": "outcome", "lane": "learning", "executor": {"kind": "controller", "id": "ordered_run_reviewer"}, "inputs": ["run_receipt", "state.comparable_run_receipts"], "outcome": "Review the run and optionally propose an improvement; on review failure emit a degraded receipt without changing the delivery status or active graph.", "delegation": {"mode": "assist", "allowed_roles": ["reviewer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "run_review_recorded", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
-    {"id": "run_completed", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_review_receipt"], "outcome": "Close the run at the requested completion level.", "completion": {"predicate": "run_closed", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
-    {"id": "run_blocked", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_review_receipt"], "outcome": "Close the current attempt with an exact unresolved gate and unblocker.", "completion": {"predicate": "run_closed", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
-    {"id": "run_failed", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_review_receipt"], "outcome": "Close the run after a non-recoverable failure while preserving all evidence.", "completion": {"predicate": "run_closed", "evidence": ["run_review_receipt"]}, "invalidated_by": []}
+    {"id": "record_run_receipt", "kind": "outcome", "lane": "close", "executor": {"kind": "controller", "id": "run_receipt_recorder"}, "inputs": ["state.run_history", "state.final_status", "authority_envelope"], "outcome": "Record immutable decisions, transitions, evidence, authority use, and delivery status before finalization.", "completion": {"predicate": "run_receipt_recorded", "evidence": ["run_receipt"]}, "invalidated_by": []},
+    {"id": "reconcile_run_resources", "kind": "outcome", "lane": "close", "executor": {"kind": "deterministic", "id": "run_resource_reconciler"}, "inputs": ["run_receipt", "run_resource_manifest", "authority_envelope", "decision_receipt", "state.live_resource_state"], "outcome": "Inventory every resource created or claimed by this run, release verified non-destructive resources, preserve anything still needed or not provably owned, and require one exact recoverability-card confirmation before destructive cleanup.", "completion": {"predicate": "run_cleanup_recorded", "evidence": ["run_resource_manifest", "run_cleanup_receipt"]}, "invalidated_by": ["run_resource_manifest_changed", "live_resource_state_changed", "cleanup_authority_changed"]},
+    {"id": "request_cleanup_authority", "kind": "decision", "lane": "close", "executor": {"kind": "human", "id": "codex_picker"}, "inputs": ["run_cleanup_receipt", "authority_envelope"], "outcome": "Approve or refuse the exact digest-bound deletion list after reviewing its count, size, location, recoverability, loss, and alternatives.", "completion": {"predicate": "human_decision_recorded", "evidence": ["decision_receipt"]}, "invalidated_by": ["run_resource_manifest_changed", "deletion_target_changed", "recoverability_changed"]},
+    {"id": "review_run", "kind": "outcome", "lane": "learning", "executor": {"kind": "controller", "id": "ordered_run_reviewer"}, "inputs": ["run_receipt", "run_cleanup_receipt", "state.comparable_run_receipts"], "outcome": "Review delivery and cleanup, then optionally propose an improvement; on review failure emit a degraded receipt without changing the delivery status or active graph.", "delegation": {"mode": "assist", "allowed_roles": ["reviewer"], "parallelism": "read_only", "write_policy": "none"}, "completion": {"predicate": "run_review_recorded", "evidence": ["run_review_receipt"]}, "invalidated_by": []},
+    {"id": "run_completed", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_cleanup_receipt", "run_review_receipt"], "outcome": "Close the run at the requested completion level after resource reconciliation.", "completion": {"predicate": "run_closed", "evidence": ["run_cleanup_receipt", "run_review_receipt"]}, "invalidated_by": []},
+    {"id": "run_blocked", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_cleanup_receipt", "run_review_receipt"], "outcome": "Close the current attempt with an exact unresolved delivery or cleanup gate and unblocker.", "completion": {"predicate": "run_closed", "evidence": ["run_cleanup_receipt", "run_review_receipt"]}, "invalidated_by": []},
+    {"id": "run_failed", "kind": "terminal", "lane": "close", "executor": {"kind": "controller", "id": "close_run"}, "inputs": ["run_cleanup_receipt", "run_review_receipt"], "outcome": "Close the run after a non-recoverable failure while preserving all evidence and any resources needed for recovery.", "completion": {"predicate": "run_closed", "evidence": ["run_cleanup_receipt", "run_review_receipt"]}, "invalidated_by": []}
   ],
   "edges": [
     {"id": "intake_to_annotations", "from": "intake_run", "to": "structure_annotation_batch", "guard": "annotation_batch_present", "type": "advance"},
@@ -786,7 +824,12 @@
     {"id": "land_and_deploy_success_to_receipt", "from": "land_and_deploy_change", "to": "record_run_receipt", "guard": "external_action_succeeded", "type": "complete", "sets_status": "completed"},
     {"id": "land_and_deploy_blocked_to_receipt", "from": "land_and_deploy_change", "to": "record_run_receipt", "guard": "external_action_blocked", "type": "complete", "sets_status": "blocked"},
     {"id": "land_and_deploy_failed_to_receipt", "from": "land_and_deploy_change", "to": "record_run_receipt", "guard": "external_action_failed", "type": "complete", "sets_status": "failed"},
-    {"id": "receipt_to_review", "from": "record_run_receipt", "to": "review_run", "guard": "stage_completed", "type": "advance"},
+    {"id": "receipt_to_cleanup", "from": "record_run_receipt", "to": "reconcile_run_resources", "guard": "stage_completed", "type": "advance"},
+    {"id": "cleanup_to_review", "from": "reconcile_run_resources", "to": "review_run", "guard": "cleanup_reconciled", "type": "advance"},
+    {"id": "cleanup_to_authority", "from": "reconcile_run_resources", "to": "request_cleanup_authority", "guard": "cleanup_confirmation_required", "type": "decision"},
+    {"id": "cleanup_blocked_to_review", "from": "reconcile_run_resources", "to": "review_run", "guard": "cleanup_blocked", "type": "advance"},
+    {"id": "cleanup_authority_to_cleanup", "from": "request_cleanup_authority", "to": "reconcile_run_resources", "guard": "cleanup_authority_granted", "type": "recovery", "budget": "cleanup_attempts"},
+    {"id": "cleanup_authority_denied_to_review", "from": "request_cleanup_authority", "to": "review_run", "guard": "cleanup_authority_denied", "type": "advance"},
     {"id": "review_to_completed", "from": "review_run", "to": "run_completed", "guard": "run_status_completed", "type": "complete"},
     {"id": "review_to_blocked", "from": "review_run", "to": "run_blocked", "guard": "run_status_blocked", "type": "complete"},
     {"id": "review_to_failed", "from": "review_run", "to": "run_failed", "guard": "run_status_failed", "type": "complete"}
@@ -912,6 +955,15 @@
       {"value": "blocked", "edge": "land_and_deploy_blocked_to_receipt", "guard": "external_action_blocked"},
       {"value": "failed", "edge": "land_and_deploy_failed_to_receipt", "guard": "external_action_failed"}
     ]},
+    {"node": "reconcile_run_resources", "partition": "resource_cleanup_result", "selection": "exactly_one", "evidence": ["run_resource_manifest", "run_cleanup_receipt"], "domain": ["reconciled", "confirmation_required", "blocked"], "cases": [
+      {"value": "reconciled", "edge": "cleanup_to_review", "guard": "cleanup_reconciled"},
+      {"value": "confirmation_required", "edge": "cleanup_to_authority", "guard": "cleanup_confirmation_required"},
+      {"value": "blocked", "edge": "cleanup_blocked_to_review", "guard": "cleanup_blocked"}
+    ]},
+    {"node": "request_cleanup_authority", "partition": "cleanup_authority_decision", "selection": "exactly_one_after_answer", "evidence": ["run_cleanup_receipt", "decision_receipt"], "domain": ["granted", "denied"], "cases": [
+      {"value": "granted", "edge": "cleanup_authority_to_cleanup", "guard": "cleanup_authority_granted"},
+      {"value": "denied", "edge": "cleanup_authority_denied_to_review", "guard": "cleanup_authority_denied"}
+    ]},
     {"node": "review_run", "partition": "effective_terminal_status", "selection": "exactly_one", "evidence": ["run_review_receipt"], "domain": ["completed", "blocked", "failed"], "cases": [
       {"value": "completed", "edge": "review_to_completed", "guard": "run_status_completed"},
       {"value": "blocked", "edge": "review_to_blocked", "guard": "run_status_blocked"},
@@ -928,7 +980,8 @@
       {"node": "select_next_annotation_problem", "outcome": "ready_problem", "edge": "annotation_selector_to_problem"},
       {"node": "execute_annotation_problem", "edge": "annotation_problem_to_selector"},
       {"node": "select_next_annotation_problem", "outcome": "completed", "edge": "annotation_selector_completed_to_receipt"},
-      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "record_run_receipt", "edge": "receipt_to_cleanup"},
+      {"node": "reconcile_run_resources", "outcome": "reconciled", "edge": "cleanup_to_review"},
       {"node": "review_run", "outcome": "completed", "edge": "review_to_completed"}
     ], "ends_at": "run_completed"},
     {"id": "annotation_problem_uses_bounded_clarification", "start": "select_next_annotation_problem", "steps": [
@@ -948,7 +1001,8 @@
     {"id": "missing_release_authority_blocks_before_action", "start": "prepare_release", "steps": [
       {"node": "prepare_release", "outcome": "authority_needed", "edge": "preflight_to_authority"},
       {"node": "request_release_authority", "outcome": "denied", "edge": "authority_denied_to_receipt"},
-      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "record_run_receipt", "edge": "receipt_to_cleanup"},
+      {"node": "reconcile_run_resources", "outcome": "reconciled", "edge": "cleanup_to_review"},
       {"node": "review_run", "outcome": "blocked", "edge": "review_to_blocked"}
     ], "ends_at": "run_blocked"},
     {"id": "compound_production_release", "start": "prepare_release", "steps": [
@@ -956,13 +1010,22 @@
       {"node": "ship_change", "outcome": "succeeded", "edge": "ship_success_to_resolver"},
       {"node": "resolve_ship_success", "outcome": "land_and_deploy_required", "edge": "ship_target_to_land_and_deploy"},
       {"node": "land_and_deploy_change", "outcome": "succeeded", "edge": "land_and_deploy_success_to_receipt"},
-      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "record_run_receipt", "edge": "receipt_to_cleanup"},
+      {"node": "reconcile_run_resources", "outcome": "reconciled", "edge": "cleanup_to_review"},
       {"node": "review_run", "outcome": "completed", "edge": "review_to_completed"}
     ], "ends_at": "run_completed"},
     {"id": "confirmed_late_invariant_breach_fails", "start": "record_run_receipt", "steps": [
-      {"node": "record_run_receipt", "edge": "receipt_to_review"},
+      {"node": "record_run_receipt", "edge": "receipt_to_cleanup"},
+      {"node": "reconcile_run_resources", "outcome": "reconciled", "edge": "cleanup_to_review"},
       {"node": "review_run", "outcome": "failed", "edge": "review_to_failed"}
-    ], "ends_at": "run_failed"}
+    ], "ends_at": "run_failed"},
+    {"id": "destructive_cleanup_requires_exact_confirmation", "start": "record_run_receipt", "steps": [
+      {"node": "record_run_receipt", "edge": "receipt_to_cleanup"},
+      {"node": "reconcile_run_resources", "outcome": "confirmation_required", "edge": "cleanup_to_authority"},
+      {"node": "request_cleanup_authority", "outcome": "granted", "edge": "cleanup_authority_to_cleanup"},
+      {"node": "reconcile_run_resources", "outcome": "reconciled", "edge": "cleanup_to_review"},
+      {"node": "review_run", "outcome": "completed", "edge": "review_to_completed"}
+    ], "ends_at": "run_completed"}
   ],
   "deliberation_trace_scenarios": [
     {"id": "design_profile_returns_to_exact_caller", "template": "bounded_peer_deliberation", "invoking_run_id": "run-design-1", "invoking_node_id": "review_experience", "profile_id": "design", "profile_version": "1.0.0", "input_digest": "sha256:design-input-1", "invoked": true, "steps": [
@@ -1034,8 +1097,13 @@
     },
     {
       "id": "aligned_release_autonomy",
-      "events": ["alignment_lock_recorded", "nested_executor_returns", "version_required", "release_preflight_green", "production_verified"],
-      "assertions": ["nested_final_returns_to_controller", "controller_selects_version", "no_release_reconfirmation", "production_verified_before_close", "run_review_before_terminal"]
+      "events": ["alignment_lock_recorded", "nested_executor_returns", "version_required", "release_preflight_green", "production_verified", "run_resources_reconciled"],
+      "assertions": ["nested_final_returns_to_controller", "controller_selects_version", "no_release_reconfirmation", "production_verified_before_close", "cleanup_before_review", "run_review_before_terminal"]
+    },
+    {
+      "id": "run_cleanup_is_bounded_and_loss_safe",
+      "events": ["delivery_receipt_recorded", "run_resource_manifest_frozen", "exact_targets_inspected", "safe_resources_released", "destructive_targets_gated", "cleanup_verified", "run_reviewed"],
+      "assertions": ["current_run_scope_only", "exact_resolved_targets_only", "dirty_untracked_unpushed_unmerged_shared_and_unknown_resources_preserved", "broad_roots_and_globs_forbidden", "destructive_cleanup_requires_digest_bound_explicit_yes", "empty_or_prior_consent_rejected", "worktree_removal_proves_clean_pushed_merged_and_unleased", "every_manifest_resource_has_disposition", "cleanup_retry_bounded", "cleanup_before_review"]
     }
   ]
 }

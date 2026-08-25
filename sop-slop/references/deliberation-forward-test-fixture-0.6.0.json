@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "forward_test": {
-    "run_id": "sop-slop-deliberation-forward-0.5.0",
-    "graph_version": "0.5.0",
+    "run_id": "sop-slop-deliberation-forward-0.6.0",
+    "graph_version": "0.6.0",
     "mode": "evolution",
     "lane": "product-change",
     "tier": "T2",
@@ -16,6 +16,7 @@
       "review_experience",
       "review_engineering",
       "record_run_receipt",
+      "reconcile_run_resources",
       "review_run",
       "run_completed"
     ],
@@ -25,7 +26,8 @@
       {"from": "select_entry_stage", "to": "review_experience", "edge_id": "entry_to_review_experience", "outcome": "review_experience"},
       {"from": "review_experience", "to": "review_engineering", "edge_id": "design_to_engineering", "outcome": "accepted_engineering"},
       {"from": "review_engineering", "to": "record_run_receipt", "edge_id": "engineering_to_receipt", "outcome": "accepted_complete"},
-      {"from": "record_run_receipt", "to": "review_run", "edge_id": "receipt_to_review"},
+      {"from": "record_run_receipt", "to": "reconcile_run_resources", "edge_id": "receipt_to_cleanup"},
+      {"from": "reconcile_run_resources", "to": "review_run", "edge_id": "cleanup_to_review", "outcome": "reconciled"},
       {"from": "review_run", "to": "run_completed", "edge_id": "review_to_completed", "outcome": "completed"}
     ],
     "deliberations": [
@@ -69,8 +71,8 @@
       {
         "delegation_id": "delegation-design-flow",
         "execution_id": "exec-design-flow",
-        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
-        "graph_version": "0.5.0",
+        "parent_run_id": "sop-slop-deliberation-forward-0.6.0",
+        "graph_version": "0.6.0",
         "node_id": "review_experience",
         "request_id": "delib-design-001",
         "specialist_id": "design-flow",
@@ -91,8 +93,8 @@
       {
         "delegation_id": "delegation-design-visual",
         "execution_id": "exec-design-visual",
-        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
-        "graph_version": "0.5.0",
+        "parent_run_id": "sop-slop-deliberation-forward-0.6.0",
+        "graph_version": "0.6.0",
         "node_id": "review_experience",
         "request_id": "delib-design-001",
         "specialist_id": "design-visual",
@@ -113,8 +115,8 @@
       {
         "delegation_id": "delegation-design-access",
         "execution_id": "exec-design-access",
-        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
-        "graph_version": "0.5.0",
+        "parent_run_id": "sop-slop-deliberation-forward-0.6.0",
+        "graph_version": "0.6.0",
         "node_id": "review_experience",
         "request_id": "delib-design-001",
         "specialist_id": "design-access",
@@ -135,8 +137,8 @@
       {
         "delegation_id": "delegation-eng-simple",
         "execution_id": "exec-eng-simple",
-        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
-        "graph_version": "0.5.0",
+        "parent_run_id": "sop-slop-deliberation-forward-0.6.0",
+        "graph_version": "0.6.0",
         "node_id": "review_engineering",
         "request_id": "delib-engineering-001",
         "specialist_id": "eng-simple",
@@ -157,8 +159,8 @@
       {
         "delegation_id": "delegation-eng-reliability",
         "execution_id": "exec-eng-reliability",
-        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
-        "graph_version": "0.5.0",
+        "parent_run_id": "sop-slop-deliberation-forward-0.6.0",
+        "graph_version": "0.6.0",
         "node_id": "review_engineering",
         "request_id": "delib-engineering-001",
         "specialist_id": "eng-reliability",
@@ -179,8 +181,8 @@
       {
         "delegation_id": "delegation-eng-ops",
         "execution_id": "exec-eng-ops",
-        "parent_run_id": "sop-slop-deliberation-forward-0.5.0",
-        "graph_version": "0.5.0",
+        "parent_run_id": "sop-slop-deliberation-forward-0.6.0",
+        "graph_version": "0.6.0",
         "node_id": "review_engineering",
         "request_id": "delib-engineering-001",
         "specialist_id": "eng-ops",
@@ -202,8 +204,8 @@
     "evidence": {
       "route_card": [
         {
-          "run_id": "sop-slop-deliberation-forward-0.5.0",
-          "graph_version": "0.5.0",
+          "run_id": "sop-slop-deliberation-forward-0.6.0",
+          "graph_version": "0.6.0",
           "lane": "product-change",
           "tier": "T2",
           "primary_outcome": "Prove that two eligible review nodes can invoke one bounded peer-deliberation subgraph and resume their exact caller.",
@@ -213,7 +215,7 @@
           "current_node": "record_run_receipt",
           "authority_source": "synthetic-fixture:generic-deliberation",
           "entry_stage": "review_experience",
-          "selected_stages": ["intake_run", "select_entry_stage", "review_experience", "review_engineering", "record_run_receipt", "review_run", "run_completed"],
+          "selected_stages": ["intake_run", "select_entry_stage", "review_experience", "review_engineering", "record_run_receipt", "reconcile_run_resources", "review_run", "run_completed"],
           "skipped_stages": ["align_product", "specify_product", "plan_slices", "deliver_slice", "ship_change", "land_and_deploy_change"],
           "skip_reasons": {
             "align_product": "The synthetic decision briefs are frozen.",
@@ -235,10 +237,24 @@
           "expires_at": "2099-01-01T00:00:00Z"
         }
       ],
+      "run_resource_manifest": [
+        {
+          "run_id": "sop-slop-deliberation-forward-0.6.0",
+          "graph_version": "0.6.0",
+          "resources": [],
+          "ownership": {},
+          "exact_targets": [],
+          "creation_receipts": [],
+          "disposal_intent": {},
+          "issuer": "synthetic-controller",
+          "created_at": "2026-01-02T00:00:00Z",
+          "updated_at": "2026-01-02T00:23:00Z"
+        }
+      ],
       "deliberation_request": [
         {
           "request_id": "delib-design-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
           "invoking_node_id": "review_experience",
           "decision_question": "How should the primary confirmation action remain visible and accessible on narrow screens?",
@@ -264,7 +280,7 @@
         },
         {
           "request_id": "delib-engineering-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
           "invoking_node_id": "review_engineering",
           "decision_question": "Should audit-event publication happen inline or through the repository's existing outbox boundary?",
@@ -292,7 +308,7 @@
       "deliberation_round": [
         {
           "request_id": "delib-design-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "invoking_node_id": "review_experience",
           "input_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4",
           "profile_id": "design",
@@ -334,7 +350,7 @@
         },
         {
           "request_id": "delib-engineering-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "invoking_node_id": "review_engineering",
           "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
           "profile_id": "engineering",
@@ -376,7 +392,7 @@
         },
         {
           "request_id": "delib-engineering-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "invoking_node_id": "review_engineering",
           "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
           "profile_id": "engineering",
@@ -522,7 +538,7 @@
       "deliberation_return_receipt": [
         {
           "request_id": "delib-design-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
           "invoking_node_id": "review_experience",
           "input_digest": "cf629c43f418707e8c6f7cfc8631695e14559e68f2e318808ab59a20ce694ed4",
@@ -540,7 +556,7 @@
         },
         {
           "request_id": "delib-engineering-001",
-          "invoking_run_id": "sop-slop-deliberation-forward-0.5.0",
+          "invoking_run_id": "sop-slop-deliberation-forward-0.6.0",
           "mission_anchor_digest": "3e8ba0a87f22cd49b9d322f4566694fc02a3320699aa6e1538f65619810e58e3",
           "invoking_node_id": "review_engineering",
           "input_digest": "80f8cc38dc80272107e1ef135d0f3def1ab17a17743579f982b3a9ff58b67ada",
@@ -559,22 +575,22 @@
       ],
       "delegation_receipt": [
         {
-          "delegation_id": "delegation-design-flow", "execution_id": "exec-design-flow", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-flow", "lens": "interaction_user_flow", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "interaction_user_flow", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and proposal ownership", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted", "evidence_refs": ["d-flow-1", "d-flow-2", "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:30Z"
+          "delegation_id": "delegation-design-flow", "execution_id": "exec-design-flow", "parent_run_id": "sop-slop-deliberation-forward-0.6.0", "graph_version": "0.6.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-flow", "lens": "interaction_user_flow", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "interaction_user_flow", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and proposal ownership", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted", "evidence_refs": ["d-flow-1", "d-flow-2", "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:30Z"
         },
         {
-          "delegation_id": "delegation-design-visual", "execution_id": "exec-design-visual", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-visual", "lens": "visual_hierarchy_design_system", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "visual_hierarchy_design_system", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted", "evidence_refs": ["d-visual-1", "d-visual-2"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:31Z"
+          "delegation_id": "delegation-design-visual", "execution_id": "exec-design-visual", "parent_run_id": "sop-slop-deliberation-forward-0.6.0", "graph_version": "0.6.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-visual", "lens": "visual_hierarchy_design_system", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "visual_hierarchy_design_system", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted", "evidence_refs": ["d-visual-1", "d-visual-2"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:31Z"
         },
         {
-          "delegation_id": "delegation-design-access", "execution_id": "exec-design-access", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-access", "lens": "accessibility_edge_cases", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "accessibility_edge_cases", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accept_with_concern", "evidence_refs": ["d-access-1", "d-access-2"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:32Z"
+          "delegation_id": "delegation-design-access", "execution_id": "exec-design-access", "parent_run_id": "sop-slop-deliberation-forward-0.6.0", "graph_version": "0.6.0", "node_id": "review_experience", "request_id": "delib-design-001", "specialist_id": "design-access", "lens": "accessibility_edge_cases", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "accessibility_edge_cases", "allowed_tools": ["repository_read", "screenshot_read"], "permissions": "read-only", "input_refs": ["design-brief:v1", "screenshots:narrow-v1", "design-system:current"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accept_with_concern", "evidence_refs": ["d-access-1", "d-access-2"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:06:32Z"
         },
         {
-          "delegation_id": "delegation-eng-simple", "execution_id": "exec-eng-simple", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-simple", "lens": "simplicity_maintainability", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "simplicity_maintainability", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted_after_revision", "evidence_refs": ["e-simple-1", "e-simple-2", "e-simple-3"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:30Z"
+          "delegation_id": "delegation-eng-simple", "execution_id": "exec-eng-simple", "parent_run_id": "sop-slop-deliberation-forward-0.6.0", "graph_version": "0.6.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-simple", "lens": "simplicity_maintainability", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "simplicity_maintainability", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted_after_revision", "evidence_refs": ["e-simple-1", "e-simple-2", "e-simple-3"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:30Z"
         },
         {
-          "delegation_id": "delegation-eng-reliability", "execution_id": "exec-eng-reliability", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-reliability", "lens": "reliability_security", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "reliability_security", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion, objection, revised proposal ownership, and consent", "verification_criteria": ["typed fields", "objection resolved with evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted_after_revision", "evidence_refs": ["e-reliability-1", "e-reliability-2", "e-reliability-3", "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:31Z"
+          "delegation_id": "delegation-eng-reliability", "execution_id": "exec-eng-reliability", "parent_run_id": "sop-slop-deliberation-forward-0.6.0", "graph_version": "0.6.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-reliability", "lens": "reliability_security", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "reliability_security", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion, objection, revised proposal ownership, and consent", "verification_criteria": ["typed fields", "objection resolved with evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accepted_after_revision", "evidence_refs": ["e-reliability-1", "e-reliability-2", "e-reliability-3", "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:31Z"
         },
         {
-          "delegation_id": "delegation-eng-ops", "execution_id": "exec-eng-ops", "parent_run_id": "sop-slop-deliberation-forward-0.5.0", "graph_version": "0.5.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-ops", "lens": "operations_cost", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "operations_cost", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accept_with_concern", "evidence_refs": ["e-ops-1", "e-ops-2", "e-ops-3"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:32Z"
+          "delegation_id": "delegation-eng-ops", "execution_id": "exec-eng-ops", "parent_run_id": "sop-slop-deliberation-forward-0.6.0", "graph_version": "0.6.0", "node_id": "review_engineering", "request_id": "delib-engineering-001", "specialist_id": "eng-ops", "lens": "operations_cost", "role_id": "reviewer", "model": "gpt-5.6-luna", "reasoning_effort": "max", "ownership_scope": "operations_cost", "allowed_tools": ["repository_read", "test_read"], "permissions": "read-only", "input_refs": ["engineering-brief:v1", "architecture:current", "failure-requirement:audit-durable"], "expected_output": "typed peer discussion and consent", "verification_criteria": ["typed fields", "frozen evidence"], "stop_condition": "consent recorded", "isolation": "fresh_agent_thread", "result": "accept_with_concern", "evidence_refs": ["e-ops-1", "e-ops-2", "e-ops-3"], "controller_validation": "accepted", "issuer": "synthetic-controller", "created_at": "2026-01-02T00:20:32Z"
         }
       ],
       "verification_receipt": [
@@ -583,21 +599,39 @@
       ],
       "run_receipt": [
         {
-          "run_id": "sop-slop-deliberation-forward-0.5.0",
-          "graph_version": "0.5.0",
+          "run_id": "sop-slop-deliberation-forward-0.6.0",
+          "graph_version": "0.6.0",
           "status": "completed",
           "decisions": ["invoke design profile", "invoke engineering profile", "accept revised engineering proposal"],
-          "transitions": ["intake_run->select_entry_stage", "select_entry_stage->review_experience", "review_experience->review_engineering", "review_engineering->record_run_receipt", "record_run_receipt->review_run", "review_run->run_completed"],
+          "transitions": ["intake_run->select_entry_stage", "select_entry_stage->review_experience", "review_experience->review_engineering", "review_engineering->record_run_receipt"],
           "evidence_refs": ["delib-design-001", "delib-engineering-001", "0663f0dc62eee277d006f143c7c58edafcfc1745808834dcd2b76fc933dacc5e", "6ce1d04e68ed9e81b56134d1357461a15e00b9a99f788a25d431577516f0c7a5"],
           "authority_use": ["six read-only specialist executions", "controller-owned exact returns"],
           "started_at": "2026-01-02T00:00:00Z",
           "closed_at": "2026-01-02T00:23:00Z"
         }
       ],
+      "run_cleanup_receipt": [
+        {
+          "run_id": "sop-slop-deliberation-forward-0.6.0",
+          "graph_version": "0.6.0",
+          "resource_manifest_digest": "c65530cc79f27f13ff297940fb30b706229b210b5db2d76230d2cc8953e3e574",
+          "inventory": [],
+          "classifications": {},
+          "actions": [],
+          "preserved_resources": [],
+          "deletion_card": null,
+          "decision_ref": null,
+          "result": "reconciled",
+          "verification": {"manifest_coverage": "passed", "live_resources_remaining": 0},
+          "blocker": null,
+          "actor": "synthetic-controller",
+          "created_at": "2026-01-02T00:23:30Z"
+        }
+      ],
       "run_review_receipt": [
         {
-          "run_id": "sop-slop-deliberation-forward-0.5.0",
-          "graph_version": "0.5.0",
+          "run_id": "sop-slop-deliberation-forward-0.6.0",
+          "graph_version": "0.6.0",
           "review_status": "completed",
           "delivery_status": "completed",
           "effective_status": "completed",

@@ -88,16 +88,22 @@ class SupervisorTests(unittest.TestCase):
         with self.assertRaisesRegex(mod.GateError, "unanswered"):
             self.op("lock", source_ref="user:1", basis="assumed")
 
-    def test_question_budget_and_routine_auto_decision(self):
-        for i in range(3):
+    def test_alignment_check_in_does_not_cap_material_questions(self):
+        self.op("revise", reason="legacy contract", source_ref="test:compatibility",
+                contract={**self.contract, "question_budget": 1})
+        for i in range(12):
             self.question("q" + str(i))
             self.op("answer", id="q" + str(i), answer="yes", source_ref="user:answer")
-        with self.assertRaisesRegex(mod.GateError, "budget"):
-            self.question("q4")
+            self.assertEqual(self.op("status")["alignment_check_in_due"], (i + 1) % 3 == 0)
         result = self.op("decision", id="routine", kind="routine", question="Which parser?",
                          recommendation="stdlib", source_ref="repo:inspection")
         self.assertEqual(result["action"], "auto_decided")
-        self.assertEqual(self.op("status")["questions_used"], 3)
+        self.assertEqual(self.op("status")["questions_used"], 12)
+        self.question("still-material", kind="security")
+        with self.assertRaisesRegex(mod.GateError, "unanswered"):
+            self.op("lock", source_ref="user:1", basis="cannot skip unresolved risk")
+        self.op("answer", id="still-material", answer="yes", source_ref="user:answer")
+        self.assertEqual(self.op("lock", source_ref="user:1", basis="all material choices resolved")["phase"], "plan")
 
     def test_delegation_does_not_supply_security_authority(self):
         self.question(kind="security")
@@ -261,13 +267,13 @@ class SupervisorTests(unittest.TestCase):
             process.stderr.close()
 
     def test_graph_drift_is_rejected(self):
-        old = mod.GRAPH["question_budget"]
+        old = mod.GRAPH["question_check_in_interval"]
         try:
-            mod.GRAPH["question_budget"] = 9
+            mod.GRAPH["question_check_in_interval"] = 9
             with self.assertRaisesRegex(mod.GateError, "graph changed"):
                 self.op("status")
         finally:
-            mod.GRAPH["question_budget"] = old
+            mod.GRAPH["question_check_in_interval"] = old
 
     def test_sealed_delivery_cannot_be_reopened_and_successor_is_durable(self):
         self.green()

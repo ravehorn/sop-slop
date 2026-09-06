@@ -7,7 +7,7 @@ It is designed for substantial features, product-domain changes, and end-to-end 
 ## What it changes
 
 - starts from concrete behavior examples; settled decisions do not trigger another interview
-- defaults to at most three material alignment questions, with routine choices delegated
+- checks in after three answered material questions without capping necessary clarification; routine choices stay delegated
 - preserves the mission, annotation mapping and pending work in local SQLite state
 - captures real check exits and binds proof to the candidate and assertion files
 - rejects stale evidence, rejected reviews, competing writers and uncertain spawn retries

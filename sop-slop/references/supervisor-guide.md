@@ -40,7 +40,6 @@ check failure, 2 is an invalid request or failed gate. Errors are structured JSO
     "criteria": [{"id": "restore", "given": "an archived recipe", "when": "its manager restores it", "then": "it is selectable with the same ID"}]
   }],
   "source_dispositions": {"annotation-2": "Export idea deferred as independent"},
-  "question_budget": 3,
   "repair_budget": 3
 }
 ```
@@ -63,7 +62,11 @@ nonempty. Empty authority can start a run but cannot pass release. Never invent 
 - `decision`: `id`, `kind` (`routine`, `behavior`, `scope`, `data`, `security`,
   `cost`, `authority`), `question`, `recommendation`, `source_ref`. Material choices
   also require 2–3 `options`, existing criterion IDs in `blocks`, and `reversible`.
-  Routine choices auto-decide without consuming question budget.
+  Routine choices auto-decide and do not count toward alignment check-ins.
+  There is no question limit: every third answered material question makes status
+  expose `alignment_check_in_due:true`, an advisory reminder to summarize settled
+  choices and remaining uncertainty. It never blocks another needed question.
+  Legacy `question_budget` fields are retained as input provenance only, not caps.
 - `answer`: `id`, actual nonempty `answer`, `source_ref`. Optional
   `use_recommendation:true` is only for explicitly delegated reversible
   behavior/scope choices, never authority/security/data/cost.

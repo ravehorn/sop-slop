@@ -3,7 +3,7 @@ name: sop-slop
 description: Use for substantial product features, domain changes, or annotation batches that need intent alignment, bounded implementation and verified delivery. Also use for explicitly requested product reviews or strategy decisions. Not for isolated, already-clear small fixes.
 ---
 
-# SOP SLOP v0.7
+# SOP SLOP v0.7.1
 
 Turn what the user means into working, checked behavior. Keep one mission, ask
 only questions that change it, and continue until its requested finish is proved
@@ -25,10 +25,14 @@ including deferred/rejected ideas with reasons. Show the grouping before work.
 
 If the request or approved spec already settles material questions, lock it
 directly. Do not ask the user to approve a summary as a ritual. Otherwise ask only
-the highest-dependency unresolved choice. Three material questions is a default
-ceiling, **not a quota**. Resolve environmental facts yourself. At the ceiling,
-narrow the risky part or stop at the exact missing decision; do not guess or
-begin another interview. Clear independent work need not wait for an unrelated
+the highest-dependency unresolved choice. There is **no fixed question ceiling**.
+Clear bounded work usually needs zero to three questions; important or ambiguous
+work may need more. After each three answered material questions, briefly summarize
+what is settled and what still matters, then continue only with genuinely needed
+questions—do not ask permission to continue. This is a check-in, not a stop gate.
+Stop asking when remaining choices can safely be delegated, not when a counter
+reaches three. Resolve environmental facts yourself and do not reopen settled
+choices or ask speculative questions. Clear independent work need not wait for an unrelated
 ambiguous problem: keep separate bounded runs linked to the same canonical tasks.
 
 Routine reversible implementation, libraries, test seams, formatting and version

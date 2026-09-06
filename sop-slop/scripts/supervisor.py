@@ -152,9 +152,8 @@ def validate_contract(c):
     assigned += list(dispositions)
     require(set(assigned) == set(sources) and len(assigned) == len(set(assigned)),
             "every source needs exactly one problem or non-actionable disposition")
-    for key, default in (("question_budget", 3), ("repair_budget", 3)):
-        value = c.get(key, default)
-        require(type(value) is int and 0 <= value <= 10, f"invalid {key}")
+    value = c.get("repair_budget", 3)
+    require(type(value) is int and 0 <= value <= 10, "invalid repair_budget")
     return c
 
 
@@ -460,8 +459,6 @@ class Supervisor:
             blockers = strings(d.get("blocks"), "blocked criteria")
             require(set(blockers) <= self.criteria(s), "decision must name existing acceptance criteria")
             require(s["phase"] in ("understand", "plan"), "material change after build needs revise first")
-            require(len(s["decisions"]) < s["contract"].get("question_budget", GRAPH["question_budget"]),
-                    "question budget exhausted; narrow the unresolved decision, do not continue grilling")
             options = strings(d.get("options"), "options")
             require(2 <= len(options) <= 3 and d["recommendation"] in options, "2-3 choices including recommendation required")
             s["decisions"][d["id"]] = {**d, "answer": None}
@@ -773,12 +770,15 @@ class Supervisor:
         return [json.loads(r[0]) for r in self.db.execute("SELECT state FROM work WHERE parent=? ORDER BY rowid", (s["id"],))]
 
     def status(self, s):
+        answered = sum(d["answer"] is not None for d in s["decisions"].values())
         return {"id": s["id"], "version": s["version"], "phase": s["phase"], "mission": s["contract"]["mission"],
                 "target": s["contract"]["target"], "repo": s["repo"], "state_path": str(self.home / "runs.sqlite3"),
                 "contract": s["contract"], "alignment": s["alignment"], "revision": s["revision"],
                 "pending_inputs": [k for k, v in s["inputs"].items() if v["classification"] is None],
                 "open_decisions": [v for v in s["decisions"].values() if v["answer"] is None],
                 "questions_used": len(s["decisions"]), "candidate": s["candidate"],
+                "alignment_check_in_due": s["phase"] in ("understand", "plan") and answered > 0 and
+                                          answered % GRAPH["question_check_in_interval"] == 0,
                 "checks": [{"id": c["id"], "kind": c["kind"]} for c in s["checks"]],
                 "last_results": {r["check_id"]: {"result": r["result"], "id": r["id"]} for r in s["receipts"]},
                 "execution": s["execution"], "work": self.work_list(s), "resources": s["resources"],

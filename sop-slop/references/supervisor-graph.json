@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "0.7.0",
+  "version": "0.7.1",
   "phases": ["understand", "plan", "build", "check", "release", "finish"],
   "edges": [
     ["understand", "plan", "alignment_locked"],
@@ -12,7 +12,7 @@
     ["check", "finish", "local_requested_completion_verified"],
     ["release", "finish", "requested_release_and_live_checks_verified"]
   ],
-  "question_budget": 3,
+  "question_check_in_interval": 3,
   "repair_budget": 3,
   "review_classes": ["no_issue", "executor_issue", "graph_issue", "policy_issue"],
   "active_input_classes": ["continuation_or_dependency", "side_quest", "explicit_replacement", "result_question"],

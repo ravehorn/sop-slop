@@ -1,6 +1,6 @@
 # SOP SLOP
 
-SOP SLOP turns product ideas and observations into aligned, executable work and verified results. Version 0.7 combines a small local supervisor with Matt Pocock's and gstack's upstream-maintained techniques.
+SOP SLOP turns product ideas and observations into aligned, executable work and verified results. Version 0.8 adds opt-in parallel worktree development and serialized delivery to the small local supervisor, alongside Matt Pocock's and gstack's upstream-maintained techniques.
 
 It is designed for substantial features, product-domain changes, and end-to-end product reviews—not small, already-clear fixes.
 
@@ -13,6 +13,12 @@ It is designed for substantial features, product-domain changes, and end-to-end 
 - rejects stale evidence, rejected reviews, competing writers and uncertain spawn retries
 - seals delivery before resource reconciliation and run review
 - keeps upstream skills updateable and runs only needed specialist lenses
+- gives independent peers their own worktree leases, scoped test locks, a FIFO
+  delivery lane and a compact mailbox without a central orchestrator
+
+See [coordination and safe adoption](sop-slop/references/coordination.md).
+Activation requires a drained checkpoint and explicitly fences older controllers;
+do not overwrite an active run's pinned package.
 
 Six active phases: understand, plan, build, check, release, finish. This is an
 in-task supervisor, not a background service, sandbox, host hook or guarantee of

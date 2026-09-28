@@ -105,7 +105,8 @@ Redaction is best effort, so select safe commands. Failed results remain durable
 ## Build and check
 
 - `lease`: `action: acquire` before implementation, `release` afterward. One
-  lease across linked worktrees. Never steal by time. Inspect an abandoned owner
+  lease across linked worktrees until explicit [coordination activation](coordination.md),
+  then one per worktree and branch. Never steal by time. Inspect an abandoned owner
   run/process/worktree, then close/release through that recorded owner before
   acquiring a new lease. Do not erase state to bypass another writer.
 - `check`: `id`, `phase` (`red` before implementation; `candidate` after freeze).

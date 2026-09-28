@@ -3,7 +3,7 @@ name: sop-slop
 description: Use for substantial product features, domain changes, or annotation batches that need intent alignment, bounded implementation and verified delivery. Also use for explicitly requested product reviews or strategy decisions. Not for isolated, already-clear small fixes.
 ---
 
-# SOP SLOP v0.7.1
+# SOP SLOP v0.8.0
 
 Turn what the user means into working, checked behavior. Keep one mission, ask
 only questions that change it, and continue until its requested finish is proved
@@ -78,13 +78,29 @@ with `skill`, and preserve its true safety stops. Do not upgrade upstreams mid-r
 
 ## Work and prove it
 
+For user-facing repository work, read the project's maintained feature-map index
+and affected entries (use its documented location; `docs/feature-map/README.md`
+is a fallback). Use user paths, prerequisites, gotchas and existing verification
+recipes to choose coverage; inspect source/callers for impact rather than trusting
+the map as an exhaustive graph. Update affected entries and the index in the same
+change when behavior, entry points, permissions or recipes change. Keep source
+revision and actual runtime evidence distinct: mocked contracts are not live
+database or production proof. Record gaps; never rewrite expectations to conceal
+a regression. Full-map live sweeps are separately scoped work, not routine overhead.
+If no map exists, follow existing project docs and propose one only when useful;
+do not create a new map or audit unrelated features on every task.
+
 1. Register checks covering every acceptance criterion: executable commands,
    assertion files and whether red-to-green proof is required. Write tests before
    behavior code where practical. Inspect assertions: exit zero alone does not
    prove meaningful behavior. Use real browser/runtime checks for visible flows.
-2. Acquire the shared repository writer lease before implementation. One writer;
-   bounded read-only exploration/review may run independently when permitted.
-   Workers return evidence; this controller alone changes run state.
+2. Follow [scoped coordination](references/coordination.md). After explicit
+   activation, acquire your own worktree writer lease before implementation.
+   Independent worktrees develop concurrently; never edit another owner's tree.
+   Integration and production share one short FIFO `delivery` claim. Tests need
+   a named shared resource claim or an explicitly verified isolated environment.
+   Before activation the legacy repository-wide lease remains in force. Do not
+   switch a running peer or steal a stale lease. Each peer owns its own run state.
 3. Run the registered test with JSON `phase: "red"`, implement the slice, freeze,
    then run candidate checks. Keep generated test artifacts outside the candidate
    or in intentionally ignored output paths. Do not count setup/import failures

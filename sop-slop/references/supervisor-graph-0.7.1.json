@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "0.8.0",
+  "version": "0.7.1",
   "phases": ["understand", "plan", "build", "check", "release", "finish"],
   "edges": [
     ["understand", "plan", "alignment_locked"],
@@ -21,9 +21,7 @@
     "no_unclassified_input_before_execution",
     "no_silent_contract_change",
     "no_unanswered_material_decision_before_closure",
-    "legacy_global_writer_until_explicit_coordination_activation",
-    "one_writer_per_worktree_and_branch_after_activation",
-    "serialized_delivery_and_explicit_shared_test_claims",
+    "one_writer_per_git_common_directory",
     "checks_require_observed_exit_and_unchanged_subject",
     "acceptance_checks_cover_every_requirement",
     "test_definition_changes_require_replan",

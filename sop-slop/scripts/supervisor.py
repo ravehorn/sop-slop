@@ -20,6 +20,7 @@ import uuid
 GRAPH_PATH = Path(__file__).resolve().parents[1] / "references" / "supervisor-graph.json"
 GRAPH = json.loads(GRAPH_PATH.read_text())
 VERSION = GRAPH["version"]
+LEGACY_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.7.1.json").read_text())
 TARGETS = {"decision_complete", "spec_complete", "review_complete", "candidate_verified",
            "pr_opened", "merged", "staging_verified", "production_verified"}
 RELEASES = {"pr_opened": "pr", "merged": "merge", "staging_verified": "staging",
@@ -166,6 +167,7 @@ class Supervisor:
         self.home.mkdir(mode=0o700, exist_ok=True)
         self.db = sqlite3.connect(self.home / "runs.sqlite3", timeout=10, isolation_level=None)
         self.db.row_factory = sqlite3.Row
+        self.db.create_function("sop_coordination_protocol", 0, lambda: 1)
         self.db.execute("PRAGMA busy_timeout=10000")
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS metadata(version INTEGER NOT NULL);
@@ -179,6 +181,17 @@ class Supervisor:
               state TEXT NOT NULL, UNIQUE(parent, source_key));
             CREATE TABLE IF NOT EXISTS writer(
               slot INTEGER PRIMARY KEY CHECK(slot=1), run_id TEXT NOT NULL, actor TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS coordination(mode INTEGER NOT NULL);
+            INSERT INTO coordination SELECT 0 WHERE NOT EXISTS(SELECT 1 FROM coordination);
+            CREATE TABLE IF NOT EXISTS claims(
+              key TEXT PRIMARY KEY, run_id TEXT NOT NULL, token TEXT NOT NULL, branch TEXT);
+            CREATE TABLE IF NOT EXISTS claim_queue(
+              sequence INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT NOT NULL, run_id TEXT NOT NULL,
+              UNIQUE(key, run_id));
+            CREATE TABLE IF NOT EXISTS signals(
+              sequence INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT NOT NULL, recipient TEXT NOT NULL,
+              key TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL, UNIQUE(sender,key));
+            CREATE TABLE IF NOT EXISTS migration_ids(id TEXT PRIMARY KEY, run_id TEXT NOT NULL, path TEXT NOT NULL);
             CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events
               BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
             CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
@@ -189,13 +202,14 @@ class Supervisor:
     def close(self):
         self.db.close()
 
-    def load(self, run):
+    def load(self, run, legacy=False):
         row = self.db.execute("SELECT state FROM runs WHERE id=?", (run,)).fetchone()
         require(row is not None, "unknown run")
         state = json.loads(row[0])
         require(state["repo"] == str(self.repo), "run belongs to another worktree; use its recorded repository")
-        require(state["version"] == VERSION, "run version differs; resume with its pinned supervisor")
-        require(state["graph_digest"] == digest(GRAPH), "graph changed; resume with its pinned supervisor")
+        graph = LEGACY_GRAPH if legacy else GRAPH
+        require(state["version"] == graph['version'], "run version differs; resume with its pinned supervisor or explicitly adopt")
+        require(state["graph_digest"] == digest(graph), "graph changed; resume with its pinned supervisor")
         require(state["contract_digest"] == digest(state["contract"]), "contract integrity mismatch")
         return state
 
@@ -216,9 +230,122 @@ class Supervisor:
             require(not any(i["classification"] is None for i in s["inputs"].values()), "classify pending input first")
 
     def has_writer(self, s):
+        if self.parallel():
+            self.has_claim(s, "worktree:" + s['repo'])
+            branch = self.db.execute('SELECT branch FROM claims WHERE key=?', ('worktree:' + s['repo'],)).fetchone()[0]
+            require(git(self.repo, 'symbolic-ref', '--quiet', 'HEAD').decode().strip() == branch, 'claimed branch changed; reconcile ownership')
+            return
         row = self.db.execute("SELECT * FROM writer WHERE slot=1").fetchone()
         require(row is not None and row["run_id"] == s["id"] and row["actor"] == s["contract"]["actor"],
                 "repository writer lease required")
+
+    def parallel(self):
+        return self.db.execute('SELECT mode FROM coordination').fetchone()[0] == 1
+
+    def has_claim(self, s, key):
+        row = self.db.execute('SELECT * FROM claims WHERE key=?', (key,)).fetchone()
+        require(row is not None and row['run_id'] == s['id'], 'claim required: ' + key)
+
+    def coordination_status(self, s):
+        return {'enabled': self.parallel(),
+                'claims': [dict(r) for r in self.db.execute('SELECT * FROM claims WHERE run_id=?', (s['id'],))],
+                'waiting': [r[0] for r in self.db.execute('SELECT key FROM claim_queue WHERE run_id=? ORDER BY sequence', (s['id'],))],
+                'checkpoint': s.get('checkpoint'), 'test_resources': s.get('test_resources', ['test:unclassified'])}
+
+    def scoped_lease(self, s, d):
+        key = d.get('key', 'worktree:' + s['repo'])
+        require(isinstance(key, str) and (key == 'worktree:' + s['repo'] or key == 'delivery' or
+                re.fullmatch(r'test:[A-Za-z0-9_.-]{1,100}', key)), 'invalid claim key')
+        worktree = key.startswith('worktree:')
+        row = self.db.execute('SELECT * FROM claims WHERE key=?', (key,)).fetchone()
+        action = d.get('action')
+        require(s['execution'] is None, 'cannot change claims during an execution')
+        if action == 'acquire':
+            self.active(s, s['contract']['actor'])
+            require(s['contract']['lane'] in BUILD_LANES or key.startswith('test:'), 'review/decision run cannot own implementation writes or delivery')
+            if row and row['run_id'] == s['id']:
+                return self.status(s)
+            branch = git(self.repo, 'symbolic-ref', '--quiet', 'HEAD').decode().strip() if worktree else None
+            if worktree:
+                require(row is None, 'worktree already owned')
+                require(not self.db.execute('SELECT 1 FROM claims WHERE branch=?', (branch,)).fetchone(), 'branch already owned')
+            else:
+                if s['contract']['lane'] in BUILD_LANES:
+                    self.has_writer(s)
+                # Order is delivery -> one test group. Never wait for delivery while holding a test lock.
+                held = [r[0] for r in self.db.execute("SELECT key FROM claims WHERE run_id=? AND key NOT LIKE 'worktree:%'", (s['id'],))]
+                require(not held or (key.startswith('test:') and held == ['delivery']), 'one shared test claim; acquire delivery before test resources')
+                require(not self.db.execute('SELECT 1 FROM claim_queue WHERE run_id=? AND key<>?', (s['id'], key)).fetchone(), 'one shared queue at a time')
+                self.db.execute('INSERT OR IGNORE INTO claim_queue(key,run_id) VALUES(?,?)', (key,s['id']))
+                first = self.db.execute('SELECT run_id FROM claim_queue WHERE key=? ORDER BY sequence LIMIT 1', (key,)).fetchone()
+                if row or first[0] != s['id']:
+                    self.save(s, 'claim_waiting', {'key':key})
+                    return self.status(s)
+                self.db.execute('DELETE FROM claim_queue WHERE key=? AND run_id=?', (key,s['id']))
+            self.db.execute('INSERT INTO claims VALUES(?,?,?,?)', (key,s['id'],uuid.uuid4().hex,branch))
+        elif action == 'release':
+            require(row and row['run_id'] == s['id'] and row['token'] == d.get('token'), 'current owner token required')
+            if key == 'delivery':
+                require(not self.db.execute("SELECT 1 FROM claims WHERE run_id=? AND key LIKE 'test:%'", (s['id'],)).fetchone() and
+                        not self.db.execute('SELECT 1 FROM claim_queue WHERE run_id=?', (s['id'],)).fetchone(), 'release test claims and cancel queues before delivery')
+            if worktree:
+                require(not self.db.execute('SELECT 1 FROM claims WHERE run_id=? AND key<>?', (s['id'],key)).fetchone() and
+                        not self.db.execute('SELECT 1 FROM claim_queue WHERE run_id=?', (s['id'],)).fetchone(), 'release shared claims and cancel queues first')
+            self.db.execute('DELETE FROM claims WHERE key=?', (key,))
+        elif action == 'cancel':
+            require(not worktree and not (row and row['run_id']==s['id']), 'cancel only queued requests')
+            self.db.execute('DELETE FROM claim_queue WHERE key=? AND run_id=?', (key,s['id']))
+        else:
+            raise GateError('claim action must be acquire, release or cancel; no timeout stealing')
+        self.save(s, 'claim_' + action, {'key':key})
+        return self.status(s)
+
+    def coordinate(self, s, d):
+        action = d.get('action')
+        self.active(s, s['contract']['actor'])
+        source = text(d.get('source_ref'), 'coordination source')
+        if action == 'activate':
+            if not self.parallel():
+                require(not self.db.execute('SELECT 1 FROM writer').fetchone(), 'drain legacy writer before activation')
+                require(not any(json.loads(r[0])['execution'] for r in self.db.execute('SELECT state FROM runs')), 'drain every execution before activation')
+                participants = d.get('participants', [])
+                require(isinstance(participants,list), 'participants must be a list of preflight receipts')
+                for p in participants:
+                    require(isinstance(p,dict), 'invalid participant preflight')
+                    row = self.db.execute('SELECT state FROM runs WHERE id=?', (p.get('id'),)).fetchone()
+                    require(row is not None, 'unknown participant')
+                    peer = json.loads(row[0])
+                    require(peer['revision']==p.get('revision') and p.get('ready') is True, 'participant changed since preflight')
+                    require(git(peer['repo'],'rev-parse','HEAD').decode().strip()==p.get('head') and
+                            not git(peer['repo'],'status','--porcelain'), 'participant checkpoint changed since preflight')
+                # Installed atomically with drain/activation. Old connections cannot resolve this function.
+                for operation in ('INSERT', 'UPDATE', 'DELETE'):
+                    self.db.execute(f"CREATE TRIGGER fence_runs_{operation.lower()} BEFORE {operation} ON runs BEGIN SELECT CASE WHEN sop_coordination_protocol()<>1 THEN RAISE(ABORT,'coordination protocol required') END; END")
+                self.db.execute("CREATE TRIGGER fence_legacy_writer BEFORE INSERT ON writer BEGIN SELECT RAISE(ABORT,'legacy writer disabled; use scoped coordination'); END")
+                self.db.execute('UPDATE coordination SET mode=1')
+        elif action == 'tests':
+            require(self.parallel(), 'activate coordination first')
+            resources = strings(d.get('resources'), 'test resources', empty=True)
+            require(len(resources) <= 1 and all(re.fullmatch(r'test:[A-Za-z0-9_.-]{1,100}', r) for r in resources), 'use one shared test resource or explicit isolated []')
+            s['test_resources'] = resources
+            s['test_resource_source'] = source
+        elif action == 'reserve-migration':
+            require(self.parallel(), 'activate coordination first')
+            self.has_writer(s)
+            ident = d.get('id')
+            require(isinstance(ident,str) and re.fullmatch(r'\d{14}', ident), 'migration id must be 14 digits')
+            path = text(d.get('path'), 'migration path')
+            require(path.startswith('supabase/migrations/' + ident + '_') and path.endswith('.sql') and '..' not in path, 'migration path must match id')
+            row = self.db.execute('SELECT * FROM migration_ids WHERE id=?', (ident,)).fetchone()
+            require(row is None or (row['run_id']==s['id'] and row['path']==path), 'migration id already reserved')
+            if row is None:
+                roots = [line.removeprefix('worktree ') for line in git(self.repo,'worktree','list','--porcelain').decode().splitlines() if line.startswith('worktree ')]
+                require(not any(list((Path(root)/'supabase/migrations').glob(ident + '_*.sql')) for root in roots), 'migration id already exists in a worktree')
+            self.db.execute('INSERT OR IGNORE INTO migration_ids VALUES(?,?,?)', (ident,s['id'],path))
+        else:
+            raise GateError('unknown coordination action')
+        self.save(s, 'coordination_' + action, {'source_ref':source})
+        return self.status(s)
 
     def criteria(self, s):
         return {x["id"] for p in s["contract"]["problems"] for x in p["criteria"]}
@@ -290,6 +417,28 @@ class Supervisor:
             raise
 
     def _operate(self, op, d, run, actor):
+        if op in ('adopt', 'adopt-check'):
+            s = self.load(run, legacy=True)
+            self.active(s, actor)
+            require(not git(self.repo, 'status', '--porcelain'), 'adoption requires clean checkpoint')
+            source = text(d.get('source_ref'), 'explicit adoption source')
+            replan = d.get('replan', False)
+            require(type(replan) is bool, 'replan must be boolean')
+            if not replan:
+                if s['candidate'] is not None:
+                    self.candidate_ok(s)
+                for definition in s['checks']:
+                    prior = [r for r in s['receipts'] if r.get('plan_epoch')==s['plan_epoch'] and r['check_id']==definition['id']]
+                    require(not prior or all(r.get('assertions_digest')==self.assertions(definition) and r.get('definition_digest')==digest(definition) for r in prior), 'changed assertions require explicit adoption with replan:true')
+            if op == 'adopt-check':
+                return {'id':run, 'revision':s['revision'], 'head':git(self.repo,'rev-parse','HEAD').decode().strip(), 'ready':True, 'replan':replan}
+            require(self.parallel(), 'activate coordination before adoption')
+            old = {'version':s['version'], 'graph_digest':s['graph_digest'], 'receipt_ids':[r['id'] for r in s['receipts']]}
+            s.update(version=VERSION, graph_digest=digest(GRAPH))
+            if replan:
+                s.update(phase='plan',candidate=None,review=None,release=None,checks=[])
+            self.save(s, 'coordination_adopted', {'prior':old,'source_ref':source,'replan':replan,'head':git(self.repo,'rev-parse','HEAD').decode().strip()})
+            return self.status(s)
         if op == "start":
             c = validate_contract(d)
             rid = "run-" + uuid.uuid4().hex[:12]
@@ -320,6 +469,37 @@ class Supervisor:
             return {"integrity": "pass", "delivery": s["delivery"], "terminal": s["terminal"],
                     "limit": "Local consistency, not hostile-writer authentication or live production recheck."}
         require(actor == s["contract"]["actor"], "controller identity mismatch")
+        if op == 'coordination':
+            return self.coordinate(s, d)
+        if op == 'inbox':
+            after = d.get('after', 0)
+            require(type(after) is int and after >= 0, 'invalid cursor')
+            rows = [dict(r) for r in self.db.execute('SELECT * FROM signals WHERE recipient=? AND sequence>? ORDER BY sequence LIMIT 50', (run,after))]
+            return {'events':rows, 'cursor':rows[-1]['sequence'] if rows else after}
+        if op in ('checkpoint', 'signal'):
+            self.active(s, actor)
+            require(self.parallel(), 'activate coordination first')
+            if op == 'checkpoint':
+                strings(d.get('contracts'), 'contracts', empty=True)
+                strings(d.get('dependencies'), 'dependencies', empty=True)
+                s['checkpoint'] = {'thread_id':text(d.get('thread_id'), 'thread id'), 'summary':text(d.get('summary'), 'summary'),
+                    'head':git(self.repo,'rev-parse','HEAD').decode().strip(), 'dirty':bool(git(self.repo,'status','--porcelain')),
+                    'contracts':d['contracts'], 'dependencies':d['dependencies']}
+                self.save(s, 'checkpoint', s['checkpoint'])
+                return self.status(s)
+            key = identifier(d.get('key'))
+            recipient = identifier(d.get('recipient'))
+            require(self.db.execute('SELECT 1 FROM runs WHERE id=?', (recipient,)).fetchone(), 'unknown recipient')
+            require(d.get('kind') in ('contract_changed','dependency_ready','integration_failed','resource_released','review_requested'), 'invalid signal kind')
+            body = text(d.get('body'), 'signal body')
+            require(len(body) <= 2000, 'signal body exceeds 2000 characters')
+            prior = self.db.execute('SELECT * FROM signals WHERE sender=? AND key=?', (run,key)).fetchone()
+            if prior:
+                require((prior['recipient'],prior['kind'],prior['body']) == (recipient,d['kind'],body), 'signal key reused')
+                return dict(prior)
+            self.db.execute('INSERT INTO signals(sender,recipient,key,kind,body) VALUES(?,?,?,?,?)', (run,recipient,key,d['kind'],body))
+            self.save(s, 'signal_sent', {'key':key,'recipient':recipient})
+            return dict(self.db.execute('SELECT * FROM signals WHERE sender=? AND key=?', (run,key)).fetchone())
         if op == "input":
             iid = identifier(d.get("id"), "input id")
             incoming = {"digest": digest(d), "summary": text(d.get("summary"), "input summary"),
@@ -378,6 +558,8 @@ class Supervisor:
             self.save(s, "work_dispatch", {"id": item["id"], "status": item["status"]})
             return item
         if op == "lease":
+            if self.parallel():
+                return self.scoped_lease(s, d)
             action = d.get("action")
             row = self.db.execute("SELECT * FROM writer WHERE slot=1").fetchone()
             if action == "acquire":
@@ -410,6 +592,8 @@ class Supervisor:
             s["cleanup"] = {"time": time.time(), "resources_digest": digest(s["resources"]),
                             "note": text(d.get("note"), "cleanup note")}
             self.db.execute("DELETE FROM writer WHERE slot=1 AND run_id=?", (run,))
+            self.db.execute('DELETE FROM claims WHERE run_id=?', (run,))
+            self.db.execute('DELETE FROM claim_queue WHERE run_id=?', (run,))
             self.save(s, "cleanup_reconciled", s["cleanup"])
             return self.status(s)
         if op == "finish":
@@ -563,6 +747,9 @@ class Supervisor:
                                                             "contract_digest": s["contract_digest"]})
             self.save(s, "authority_recorded", {"actions": actions, "source_ref": source})
         elif op == "release":
+            if self.parallel():
+                self.has_writer(s)
+                self.has_claim(s, 'delivery')
             require(s["phase"] == "check", "release must follow candidate checks")
             require(s["contract"]["target"] in RELEASES, "run does not request release")
             self.check_results(s)
@@ -647,6 +834,10 @@ class Supervisor:
             require(s["phase"] in ("build", "check", "release"), "check has no approved plan")
             definition = next((c for c in s["checks"] if c["id"] == d.get("id")), None)
             require(definition is not None, "unregistered check")
+            if self.parallel():
+                keys = ['delivery'] if s['phase']=='release' else s.get('test_resources', ['test:unclassified'])
+                for key in keys:
+                    self.has_claim(s, key)
             phase = d.get("phase", "candidate")
             require(phase in ("red", "green", "candidate", "production"), "invalid check phase")
             require((definition["kind"] in ("release", "production")) == (s["phase"] == "release"),
@@ -782,14 +973,16 @@ class Supervisor:
                 "checks": [{"id": c["id"], "kind": c["kind"]} for c in s["checks"]],
                 "last_results": {r["check_id"]: {"result": r["result"], "id": r["id"]} for r in s["receipts"]},
                 "execution": s["execution"], "work": self.work_list(s), "resources": s["resources"],
-                "delivery": s["delivery"], "cleanup": s.get("cleanup"), "review": s["run_review"], "terminal": s["terminal"]}
+                "delivery": s["delivery"], "cleanup": s.get("cleanup"), "review": s["run_review"], "terminal": s["terminal"],
+                "coordination": self.coordination_status(s)}
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("operation", choices=["start", "list", "status", "input", "classify", "decision", "answer", "lock",
                     "plan", "revise", "lease", "check", "recover-check", "freeze", "review", "repair", "authorize",
-                    "release", "resource", "skill", "seal", "cleanup", "finish", "stop", "work", "dispatch", "audit", "export"])
+                    "release", "resource", "skill", "seal", "cleanup", "finish", "stop", "work", "dispatch", "audit", "export",
+                    "coordination", "adopt", "adopt-check", "checkpoint", "signal", "inbox"])
     p.add_argument("--repo", default=".")
     p.add_argument("--run")
     p.add_argument("--actor")

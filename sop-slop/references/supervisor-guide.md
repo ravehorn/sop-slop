@@ -89,7 +89,10 @@ nonempty. Empty authority can start a run but cannot pass release. Never invent 
 ```
 
 Check kinds: `behavior`, `regression`, `required`, `artifact`, `release`,
-`production`. Every criterion needs a behavior/artifact check. Release needs a
+`production`, `environment`. Environment collectors have no product criteria and
+cannot be reused. See [explicit evidence reuse](evidence-reuse.md) for opt-in check
+policies, fresh environment identity and independent narrative-delta approval.
+Every criterion needs a behavior/artifact check. Release needs a
 release check; staging/production also need a live production check. Inspect
 assertions: broad expected error text is not enough if failure is unrelated to the
 requested behavior. Set require_red false for existing regression/artifact/external
@@ -112,8 +115,10 @@ Redaction is best effort, so select safe commands. Failed results remain durable
 - `check`: `id`, `phase` (`red` before implementation; `candidate` after freeze).
   Phase is JSON input, not a CLI flag.
 - `freeze`: empty object, binds HEAD plus tracked/nonignored working-tree files.
-  Commit first for release. Changing docs/tests/code requires refreezing and
-  reverifying. Intentionally ignored generated output can vary.
+  Commit first for release. Changes require refreezing; eligible unchanged proof
+  may then use explicit `reuse`/`review-reuse`, never implicit acceptance. Relevant
+  dependency changes require affected reverification. Ignored outputs can vary;
+  ignored dependencies must be observed by the reuse environment collector.
 - `review`: real `reviewer`, `disposition` (`accepted`, `revision_required`,
   `fatal`), `finding`, `source_ref`. This is explicitly host review attestation,
   not observed subprocess truth. Review the current frozen candidate.

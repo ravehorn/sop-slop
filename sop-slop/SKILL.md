@@ -3,7 +3,7 @@ name: sop-slop
 description: Use for substantial product features, domain changes, or annotation batches that need intent alignment, bounded implementation and verified delivery. Also use for explicitly requested product reviews or strategy decisions. Not for isolated, already-clear small fixes.
 ---
 
-# SOP SLOP v0.8.0
+# SOP SLOP v0.8.1
 
 Turn what the user means into working, checked behavior. Keep one mission, ask
 only questions that change it, and continue until its requested finish is proved
@@ -78,6 +78,23 @@ with `skill`, and preserve its true safety stops. Do not upgrade upstreams mid-r
 
 ## Work and prove it
 
+Use [bounded planning and evidence reuse](references/evidence-reuse.md) when
+planning slices, selecting checks, diagnosing repeated failures or reusing proof.
+Before implementation, map assertion-level prerequisites and their owners; reject
+semantic dependency cycles. Name one bounded user outcome, practical preview/release
+boundary, non-goals, finite exit predicates and next deployed learning milestone.
+Do not make a whole roadmap or unrelated later feature the first release gate.
+Keep implemented, qualified-for-environment and deployed states distinct.
+
+Reproduce narrowly and classify failures as product, test-oracle or environment.
+Run minimal causally affected checks; widen only for concrete shared/cross-layer
+risk or the integrated release boundary. Review fixtures/oracles before expensive
+runs. One adequate run can cover multiple case IDs only when every actual assertion
+and environment matches. After two unrelated infrastructure failures, diagnose the
+environment before another broad run. After two repeated repair/review cycles or
+one working day without a deployable increment, checkpoint and reduce/diagnose
+scope before another broad round; preserve obligations and safety failures.
+
 For user-facing repository work, read the project's maintained feature-map index
 and affected entries (use its documented location; `docs/feature-map/README.md`
 is a fallback). Use user paths, prerequisites, gotchas and existing verification
@@ -114,7 +131,15 @@ do not create a new map or audit unrelated features on every task.
    independence is unavailable, report it rather than replacing it with self-review.
 
 The supervisor observes exit status, bounded output and runtime, and binds proof
-to code content, plan generation and assertions. Changes need fresh verification.
+to code content, plan generation and assertions. Relevant changes need fresh verification.
+Use one integrated qualification at the coherent release boundary, not focused
+test → full suite → commit → identical full suite. Explicit `reuse` may bind an
+eligible original pass to a HEAD-only/approved narrative candidate after unchanged
+dependencies and a fresh environment observation are proved. It never reuses an
+exact release/production observation or retrofits missing historical fingerprints.
+Freeze still clears review; `review-reuse` explicitly retains only unchanged
+reviewed content with approved narrative deltas. Real code fixes get targeted
+independent rereview of changed findings and impact, not automatic acceptance.
 Ignored build output is excluded; registered ignored test files are separately
 hashed. Test adequacy and browser/service identity still need engineering judgment.
 

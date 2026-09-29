@@ -21,6 +21,7 @@ GRAPH_PATH = Path(__file__).resolve().parents[1] / "references" / "supervisor-gr
 GRAPH = json.loads(GRAPH_PATH.read_text())
 VERSION = GRAPH["version"]
 LEGACY_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.7.1.json").read_text())
+PRIOR_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.8.0.json").read_text())
 TARGETS = {"decision_complete", "spec_complete", "review_complete", "candidate_verified",
            "pr_opened", "merged", "staging_verified", "production_verified"}
 RELEASES = {"pr_opened": "pr", "merged": "merge", "staging_verified": "staging",
@@ -207,7 +208,7 @@ class Supervisor:
         require(row is not None, "unknown run")
         state = json.loads(row[0])
         require(state["repo"] == str(self.repo), "run belongs to another worktree; use its recorded repository")
-        graph = LEGACY_GRAPH if legacy else GRAPH
+        graph = {g['version']: g for g in (LEGACY_GRAPH, PRIOR_GRAPH)}.get(state['version'], LEGACY_GRAPH) if legacy else GRAPH
         require(state["version"] == graph['version'], "run version differs; resume with its pinned supervisor or explicitly adopt")
         require(state["graph_digest"] == digest(graph), "graph changed; resume with its pinned supervisor")
         require(state["contract_digest"] == digest(state["contract"]), "contract integrity mismatch")
@@ -357,6 +358,89 @@ class Supervisor:
             require(path.is_relative_to(self.repo) and path.is_file(), "assertion file must exist inside repository")
             paths[relative] = file_hash(path)
         return digest(paths)
+
+    def narrative_paths(self, paths, assertions=()):
+        strings(paths, 'narrative paths', empty=True)
+        assertion_paths = {(self.repo / name).resolve() for name in assertions}
+        for name in paths:
+            p = Path(name)
+            require(not p.is_absolute() and p.as_posix()==name and '..' not in p.parts and
+                    not any(c in name for c in '*?[') and p.suffix=='.md' and
+                    p.name not in ('AGENTS.md','SKILL.md') and (self.repo/p).resolve() not in assertion_paths,
+                    'narrative exclusions must be exact non-assertion Markdown paths')
+            actual = self.repo / p
+            require(actual.resolve().is_relative_to(self.repo) and not actual.is_symlink() and
+                    (not actual.exists() or (actual.is_file() and not actual.stat().st_mode & 0o111)),
+                    'narrative exclusion cannot be executable or an external/symlink input')
+        return paths
+
+    def reuse_dependencies(self, s, paths):
+        assertions = [p for c in s['checks'] for p in c['test_files']]
+        self.narrative_paths(paths, assertions)
+        names = sorted(set(git(self.repo,'ls-files','-z','--cached','--others','--exclude-standard').split(b'\0')) - {b''})
+        return {'dependencies':digest([(os.fsdecode(n),file_hash(self.repo/os.fsdecode(n))) for n in names if os.fsdecode(n) not in paths]),
+                'assertions': {c['id']:self.assertions(c) for c in s['checks']},
+                'narratives':{p:file_hash(self.repo/p) for p in paths}}
+
+    def environment_receipt(self, s, definition):
+        policy = definition['reuse']
+        env = next(c for c in s['checks'] if c['id']==policy['environment_check'])
+        receipts = [r for r in s['receipts'] if r['check_id']==env['id'] and r.get('plan_epoch')==s['plan_epoch'] and r['phase']!='red']
+        require(receipts, 'fresh environment check required')
+        r = receipts[-1]
+        require(r['result']=='pass' and r['provenance']=='local_subprocess' and r['subject']==subject(self.repo) and
+                r.get('output_digest') and r.get('output_bytes',0)>0 and r.get('output_tail','').strip() and
+                r['definition_digest']==digest(env) and r['assertions_digest']==self.assertions(env) and
+                r['started_at']>=s.get('candidate_frozen_at',0) and
+                0 <= time.time()-r['finished_at'] <= policy['max_environment_age_seconds'],
+                'environment observation missing, stale, changed or failed')
+        return {'receipt_id':r['id'],'output_digest':r['output_digest'],
+                'definition_digest':r['definition_digest'],'assertions_digest':r['assertions_digest']}
+
+    def equivalent(self, before, after, d, actor):
+        require(before['dependencies']==after['dependencies'], 'executable/check dependency content changed')
+        require(before.get('assertions')==after['assertions'], 'registered assertion dependency changed')
+        changes = {p:{'before':v,'after':after['narratives'].get(p)} for p,v in before['narratives'].items()
+                   if v != after['narratives'].get(p)}
+        require(set(before['narratives'])==set(after['narratives']), 'narrative policy changed')
+        if changes:
+            approval = d.get('narrative_review')
+            require(isinstance(approval,dict) and approval.get('changes')==changes,
+                    'independent review of exact narrative delta required')
+            require(text(approval.get('reviewer'),'narrative reviewer')!=actor, 'narrative review must be independent')
+            text(approval.get('source_ref'),'narrative review source')
+            text(approval.get('finding'),'narrative-only finding; no behavior or criteria change')
+
+    def reuse_receipt(self, s, d):
+        self.candidate_ok(s)
+        require(s['phase']=='check','reuse only non-release candidate checks')
+        if s['contract']['lane'] in BUILD_LANES:
+            self.has_writer(s)
+        if self.parallel():
+            for key in s.get('test_resources',['test:unclassified']):
+                self.has_claim(s,key)
+        definition = next((c for c in s['checks'] if c['id']==d.get('id')),None)
+        require(definition and definition.get('reuse') and definition['kind'] not in ('release','production','environment'), 'check not eligible for reuse')
+        source = next((r for r in s['receipts'] if r['id']==d.get('source_receipt_id')),None)
+        require(source and source.get('provenance')=='local_subprocess' and source['result']=='pass' and source['phase']!='red', 'original observed pass required; no reuse chains')
+        require(source['check_id']==definition['id'] and source.get('plan_epoch')==s['plan_epoch'] and
+                source['definition_digest']==digest(definition) and source['assertions_digest']==self.assertions(definition), 'source definition/assertion/plan changed')
+        require(source.get('reuse_evidence') and source.get('contract_digest')==s['contract_digest'], 'original dependency/environment snapshot missing or contract changed')
+        later = s['receipts'][s['receipts'].index(source)+1:]
+        require(not any(r['check_id']==definition['id'] and r.get('plan_epoch')==s['plan_epoch'] and
+                        r['phase']!='red' and r['result']!='pass' for r in later), 'later failure blocks older evidence reuse')
+        current = self.reuse_dependencies(s,definition['reuse']['narrative_paths'])
+        self.equivalent(source['reuse_evidence'],current,d,s['contract']['actor'])
+        env = self.environment_receipt(s,definition)
+        old_env = source['reuse_evidence']['environment']
+        require(all(env[k]==old_env[k] for k in ('output_digest','definition_digest','assertions_digest')), 'environment identity or collector changed')
+        receipt = {**source,'id':'reuse-'+uuid.uuid4().hex[:12],'subject':s['candidate'],
+                   'provenance':'explicit_evidence_reuse','source_receipt_id':source['id'],
+                   'executed_at':source['finished_at'],'reused_at':time.time(),
+                   'environment_receipt_id':env['receipt_id'],'narrative_review':d.get('narrative_review')}
+        s['receipts'].append(receipt)
+        self.save(s,'evidence_reused',{'source_receipt_id':source['id'],'id':receipt['id']})
+        return receipt
 
     def work_item(self, s, key, kind, title, reason, source_ref):
         existing = self.db.execute("SELECT state FROM work WHERE parent=? AND source_key=?", (s["id"], key)).fetchone()
@@ -629,6 +713,21 @@ class Supervisor:
             self.save(s, "execution_recovered", {"source_ref": d["source_ref"]})
             return self.status(s)
         self.active(s, actor)
+        if op == 'reuse':
+            return self.reuse_receipt(s,d)
+        if op == 'review-reuse':
+            self.candidate_ok(s)
+            require(s['phase']=='check','review reuse requires candidate phase')
+            history = s.get('review_history',[])
+            prior = history[-1] if history else None
+            require(prior and prior.get('id')==d.get('source_review_id') and prior['disposition']=='accepted', 'latest original accepted independent review required')
+            require(prior.get('contract_digest')==s['contract_digest'] and prior.get('plan_epoch')==s['plan_epoch'] and prior.get('reuse_evidence'), 'review contract/plan/snapshot changed')
+            self.equivalent(prior['reuse_evidence'],self.reuse_dependencies(s,prior.get('reuse_narrative_paths',[])),d,actor)
+            s['review'] = {**prior,'subject':s['candidate'],'provenance':'explicit_review_reuse',
+                          'source_review_id':prior['id'],'binding_source':text(d.get('source_ref'),'review binding source'),
+                          'narrative_review':d.get('narrative_review')}
+            self.save(s,'review_rebound',{'source_review_id':prior['id']})
+            return self.status(s)
         if op == "decision":
             identifier(d.get("id"), "decision id")
             require(d["id"] not in s["decisions"], "decision already recorded")
@@ -676,7 +775,7 @@ class Supervisor:
                 require(cid not in seen, "duplicate check id")
                 seen.add(cid)
                 require(isinstance(c.get("argv"), list) and c["argv"], "command argv required")
-                require(c.get("kind") in ("behavior", "regression", "required", "artifact", "production", "release"), "invalid check kind")
+                require(c.get("kind") in ("behavior", "regression", "required", "artifact", "production", "release", "environment"), "invalid check kind")
                 criteria = strings(c.get("criteria", []), "check criteria", empty=True)
                 require(set(criteria) <= self.criteria(s), "unknown check criterion")
                 if c["kind"] in ("behavior", "artifact"):
@@ -688,6 +787,20 @@ class Supervisor:
                 require(type(c.get("timeout", 120)) is int and 1 <= c.get("timeout", 120) <= 600, "invalid check timeout")
                 require(all(isinstance(a, str) and a for a in c["argv"]), "argv must contain strings")
                 require(not any(redact(a) != a for a in c["argv"]), "credentials must not appear in arguments")
+                if c.get('reuse') is not None:
+                    policy = c['reuse']
+                    require(isinstance(policy,dict) and c['kind'] not in ('release','production','environment'), 'reuse forbidden for release, production or environment checks')
+                    require(policy.get('revision_independent') is True, 'reuse needs reviewed revision-independent behavior')
+                    require(type(policy.get('max_environment_age_seconds')) is int and 1<=policy['max_environment_age_seconds']<=600,'invalid environment freshness bound')
+                    self.narrative_paths(policy.get('narrative_paths'),[p for check in checks if isinstance(check,dict) for p in check.get('test_files',[])])
+                    require(text(policy.get('reviewer'),'reuse scope reviewer')!=actor, 'reuse scope needs independent review')
+                    text(policy.get('source_ref'),'reuse scope approval source')
+                    text(policy.get('environment_coverage'),'observed environment coverage and immutable/resettable inputs')
+                if c['kind']=='environment':
+                    require(not criteria and not c['require_red'], 'environment is identity, not product acceptance or red proof')
+            for c in checks:
+                if c.get('reuse'):
+                    require(any(env['id']==c['reuse'].get('environment_check') and env['kind']=='environment' for env in checks), 'reuse needs a registered environment check')
             require(covered == self.criteria(s), "every acceptance criterion needs a behavior/artifact check")
             if s["contract"]["target"] in RELEASES:
                 require(any(c["kind"] == "release" for c in checks), "release target needs a release observation check")
@@ -717,6 +830,7 @@ class Supervisor:
             if s["contract"]["lane"] in BUILD_LANES:
                 self.has_writer(s)
             s["candidate"] = subject(self.repo)
+            s['candidate_frozen_at'] = time.time()
             s["phase"] = "check"
             s["review"] = None
             self.save(s, "candidate_frozen", s["candidate"])
@@ -729,6 +843,10 @@ class Supervisor:
             s["review_required"] = True
             s["review"] = {**d, "subject": s["candidate"], "provenance": "host_review_attestation",
                            "source_ref": text(d.get("source_ref"), "review tool result source")}
+            paths = self.narrative_paths(d.get('reuse_narrative_paths',[]),[p for c in s['checks'] for p in c['test_files']])
+            s['review'].update(id='review-'+uuid.uuid4().hex[:12],contract_digest=s['contract_digest'],
+                              plan_epoch=s['plan_epoch'],reuse_evidence=self.reuse_dependencies(s,paths))
+            s.setdefault('review_history',[]).append(s['review'])
             text(d.get("finding"), "review finding")
             self.save(s, "review_recorded", {"disposition": d["disposition"], "source_ref": d["source_ref"]})
         elif op == "repair":
@@ -856,6 +974,10 @@ class Supervisor:
                          "plan_epoch": s["plan_epoch"],
                          "subject": before, "definition_digest": digest(definition), "assertions_digest": fingerprint,
                          "started_at": time.time(), "controller_pid": os.getpid(), "child_pid": None}
+            if definition.get('reuse'):
+                execution['reuse_evidence'] = {**self.reuse_dependencies(s,definition['reuse']['narrative_paths']),
+                                              'environment':self.environment_receipt(s,definition)}
+                execution['contract_digest'] = s['contract_digest']
             s["execution"] = execution
             self.save(s, "check_started", {"id": execution["id"], "check_id": definition["id"]})
             self.db.execute("COMMIT")
@@ -865,6 +987,7 @@ class Supervisor:
         result, exit_code, observation = "fail", None, None
         started = time.monotonic()
         output = ""
+        output_hash, size = hashlib.sha256(), 0
         proc = None
         try:
             proc = subprocess.Popen(definition["argv"], cwd=self.repo, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -893,6 +1016,7 @@ class Supervisor:
                             selector.unregister(key.fileobj)
                             continue
                         size += len(block)
+                        output_hash.update(block)
                         tail = (tail + block)[-8192:]
                     if size > 1024 * 1024:
                         result = "output_limit"
@@ -928,6 +1052,7 @@ class Supervisor:
         except (OSError, GateError, subprocess.SubprocessError):
             result = "subject_changed"
         receipt = {**execution, "result": result, "exit_code": exit_code,
+                   'output_digest':output_hash.hexdigest(),'output_bytes':size,
                    "duration_seconds": round(time.monotonic() - started, 3),
                    "output_tail": redact(output)[-4096:], "observation": observation,
                    "provenance": "local_subprocess", "finished_at": time.time()}
@@ -982,7 +1107,7 @@ def main():
     p.add_argument("operation", choices=["start", "list", "status", "input", "classify", "decision", "answer", "lock",
                     "plan", "revise", "lease", "check", "recover-check", "freeze", "review", "repair", "authorize",
                     "release", "resource", "skill", "seal", "cleanup", "finish", "stop", "work", "dispatch", "audit", "export",
-                    "coordination", "adopt", "adopt-check", "checkpoint", "signal", "inbox"])
+                    "coordination", "adopt", "adopt-check", "checkpoint", "signal", "inbox", "reuse", "review-reuse"])
     p.add_argument("--repo", default=".")
     p.add_argument("--run")
     p.add_argument("--actor")

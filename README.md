@@ -20,6 +20,12 @@ See [coordination and safe adoption](sop-slop/references/coordination.md).
 Activation requires a drained checkpoint and explicitly fences older controllers;
 do not overwrite an active run's pinned package.
 
+Version 0.8.1 adds [bounded testing and explicit evidence reuse](sop-slop/references/evidence-reuse.md):
+keep focused repairs narrow and qualify once at a coherent release boundary.
+Eligible unchanged checks may retain original proof across HEAD-only or reviewed
+narrative changes after a fresh environment observation. Release and production
+observations stay exact-revision checks. Adoption is explicit; existing pins remain.
+
 Six active phases: understand, plan, build, check, release, finish. This is an
 in-task supervisor, not a background service, sandbox, host hook or guarantee of
 honest agent behavior. Host permissions remain authoritative. The old 41-node

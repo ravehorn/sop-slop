@@ -4,15 +4,17 @@ import subprocess
 import sys
 import time
 import unittest
-from test_supervisor import SupervisorTests, mod, SCRIPT
+import test_supervisor as fixture
+
+mod, SCRIPT = fixture.mod, fixture.SCRIPT
 
 
 class CoordinationTests(unittest.TestCase):
-    setUp = SupervisorTests.setUp
-    tearDown = SupervisorTests.tearDown
-    git = SupervisorTests.git
-    write = SupervisorTests.write
-    op = SupervisorTests.op
+    setUp = fixture.SupervisorTests.setUp
+    tearDown = fixture.SupervisorTests.tearDown
+    git = fixture.SupervisorTests.git
+    write = fixture.SupervisorTests.write
+    op = fixture.SupervisorTests.op
 
     def activate(self):
         try:

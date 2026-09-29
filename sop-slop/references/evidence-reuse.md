@@ -37,6 +37,14 @@ root, cross-layer risk, schema/permission change or release integration—not ev
 failure, commit or receipt. Label failures product, test-oracle, or environment
 using observed evidence; do not blame the product for an unstarted fixture.
 
+A review finding in a shared harness does not automatically require the complete
+product suite. Identify the invalidated oracle (the logic deciding pass/fail) and
+expose a focused regression that exercises the same shared helper/query, with an
+owned database fixture when needed—not a copied or weakened approximation. If a
+long suite times out before reaching that oracle, its result is still unverified.
+Focused proof closes only the named finding; retain full integration coverage and
+its release gate explicitly as unverified until it actually runs successfully.
+
 After **two unrelated infrastructure failures**, stop launching broad suites and
 diagnose the shared environment. Preserve failing receipts. Resume only after the
 actual environmental predicate is repaired or a safe isolated alternative exists.

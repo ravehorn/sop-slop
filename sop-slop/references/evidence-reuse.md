@@ -45,6 +45,22 @@ long suite times out before reaching that oracle, its result is still unverified
 Focused proof closes only the named finding; retain full integration coverage and
 its release gate explicitly as unverified until it actually runs successfully.
 
+Before an expensive browser/provider check, exercise its oracle against safe saved
+outputs or representative synthetic fixtures. Cover optional Markdown, supported
+unit/numeric displays and pending/completed/error/recovery paths where relevant.
+Prefer existing structured tool results, stable identities and exact values;
+browser assertions should check observable product invariants rather than invent
+a required answer template. Display tolerance must preserve business values,
+stable IDs, permissions, absence of duplicate effects and expected error behavior.
+
+For diagnostic/parser/format-only repairs, run the **same helper/assertion** offline
+first, using existing fixtures or the smallest shared seam, then run one final
+affected real-stack check. If the same oracle failure class recurs, stop paid or
+full-stack retries until failure diagnostics and its focused regression are
+reliable. Genuine provider/pricing/runtime dependencies need their smallest real
+path; fixture proof cannot replace them or be reported as live evidence. Never
+adjust expectations to conceal a product defect. Retain broader release gates.
+
 After **two unrelated infrastructure failures**, stop launching broad suites and
 diagnose the shared environment. Preserve failing receipts. Resume only after the
 actual environmental predicate is repaired or a safe isolated alternative exists.

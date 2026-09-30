@@ -90,7 +90,15 @@ Reproduce narrowly and classify failures as product, test-oracle or environment.
 Run minimal causally affected checks; widen only for concrete shared/cross-layer
 risk or the integrated release boundary. Review fixtures/oracles before expensive
 runs. One adequate run can cover multiple case IDs only when every actual assertion
-and environment matches. After two unrelated infrastructure failures, diagnose the
+and environment matches. For assertion/parser/format repairs, exercise the same
+helper offline on safe saved or synthetic outputs before one final affected
+real-stack run. Cover supported formatting, units/numbers and timing/recovery;
+prefer structured identities/values and observable invariants over prose templates.
+Preserve exact business values, permissions, effects and error behavior. If the
+same oracle failure class recurs, pause expensive retries until its diagnostics
+and focused regression are reliable. Provider/runtime requirements still need
+the smallest real path that proves them; synthetic results are not live proof.
+After two unrelated infrastructure failures, diagnose the
 environment before another broad run. After two repeated repair/review cycles or
 one working day without a deployable increment, checkpoint and reduce/diagnose
 scope before another broad round; preserve obligations and safety failures.

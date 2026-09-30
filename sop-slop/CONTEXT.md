@@ -1,4 +1,7 @@
-# SOP SLOP Workflow Graph
+# SOP SLOP v0.6 Historical Workflow Context
+
+Historical design vocabulary only. The active v0.7 contract is in SKILL.md and
+references/supervisor-graph.json. Do not use this file as a v0.7 execution policy.
 
 This context defines the language used to design and operate the SOP SLOP workflow graph.
 

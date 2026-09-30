@@ -1,0 +1,149 @@
+diff --git a/docs/tasks.md b/docs/tasks.md
+index febf8a9..438266b 100644
+--- a/docs/tasks.md
++++ b/docs/tasks.md
+@@ -1,3 +1,19 @@
+ # Work
+ 
+-- recipe-archive: pending — implement and verify the archive contract.
++- recipe-archive: done — locally verified archive/restore candidate; no publication.
++
++## Local implementation plan
++
++- Keep the existing two library functions; change only archive state and listing visibility.
++- Cover all `docs/contract.md` behavior in `test_archive.py`: in-place reversible/idempotent transitions, returned copies, manager-only writes, tenant isolation, strict boolean validation, ordered default/opt-in listing, legacy rows, and empty catalogs.
++- Run the new behavior suite before implementation for observed missing-feature failures, then freeze and rerun it plus the existing regression test. Existing regression coverage does not require a red phase because its behavior must stay working.
++- T1 uses the established Python/unittest pattern: no new domain/design/engineering review artifact or independent review is needed. There is no UI/browser surface or release authority.
++- Requested finish: locally verified candidate only; no external actions or new Codex task.
++
++## Verification
++
++- `python3 -B -m unittest discover -v`: 8 tests passed (7 archive-contract tests plus the existing tenant/copy regression).
++- Before implementation, the registered archive suite failed on the missing state-change implementation, missing opt-in listing argument, and inclusion of archived rows by default; this was an observed behavior failure, not an import/setup failure.
++- `git diff --check`: passed.
++- Changed scope: `service.py`, `test_archive.py`, and this task record. The behavior contract remains unchanged.
++- SOP SLOP run: `run-53c87fd764be`; local supervisor evidence is retained in Git metadata. No questions or unresolved product decisions.
+diff --git a/service.py b/service.py
+index 46faeb9..8b2f12b 100644
+--- a/service.py
++++ b/service.py
+@@ -1,9 +1,18 @@
+ """Small tenant-scoped recipe catalog used only for workflow evaluation."""
+ 
+ 
+-def list_recipes(rows, tenant):
+-    return [dict(row) for row in rows if row["tenant"] == tenant]
++def list_recipes(rows, tenant, include_archived=False):
++    return [dict(row) for row in rows
++            if row["tenant"] == tenant and (include_archived or not row.get("archived", False))]
+ 
+ 
+ def set_archived(rows, tenant, role, recipe_id, archived):
+-    raise NotImplementedError("Archive and restore are not implemented")
++    if role != "manager":
++        raise PermissionError("Only managers can archive or restore recipes")
++    if not isinstance(archived, bool):
++        raise ValueError("archived must be a bool")
++    for row in rows:
++        if row["tenant"] == tenant and row["id"] == recipe_id:
++            row["archived"] = archived
++            return dict(row)
++    raise LookupError("Recipe not found")
+diff --git a/test_archive.py b/test_archive.py
+new file mode 100644
+index 0000000..f6f975c
+--- /dev/null
++++ b/test_archive.py
+@@ -0,0 +1,92 @@
++import unittest
++from copy import deepcopy
++
++from service import list_recipes, set_archived
++
++
++class ArchiveTests(unittest.TestCase):
++    def test_archive_restore_is_in_place_reversible_and_idempotent(self):
++        other_tenant = {"id": "a", "tenant": "two", "name": "Pie"}
++        recipe = {"id": "a", "tenant": "one", "name": "Soup", "notes": ["hot"]}
++        sibling = {"id": "b", "tenant": "one", "name": "Salad"}
++        rows = [other_tenant, recipe, sibling]
++        original = deepcopy(rows)
++        for archived in (True, True, False, False):
++            with self.subTest(archived=archived):
++                result = set_archived(rows, "one", "manager", "a", archived)
++                expected = {"id": "a", "tenant": "one", "name": "Soup", "notes": ["hot"], "archived": archived}
++                self.assertEqual(rows, [original[0], expected, original[2]])
++                self.assertIs(rows[0], other_tenant)
++                self.assertIs(rows[1], recipe)
++                self.assertIs(rows[2], sibling)
++                self.assertEqual(result, expected)
++                self.assertIsNot(result, recipe)
++                result["name"] = "Changed copy"
++                self.assertEqual(recipe["name"], "Soup")
++                self.assertEqual([row["id"] for row in list_recipes(rows, "one")], ["b"] if archived else ["a", "b"])
++
++    def test_non_managers_cannot_archive_or_restore(self):
++        rows = [{"id": "a", "tenant": "one", "archived": False}]
++        original = deepcopy(rows)
++        for role in ("cook", "admin", "Manager", "", None):
++            for archived in (True, False):
++                with self.subTest(role=role, archived=archived):
++                    with self.assertRaises(PermissionError):
++                        set_archived(rows, "one", role, "a", archived)
++                    self.assertEqual(rows, original)
++
++    def test_missing_cross_tenant_and_empty_catalog_are_not_found(self):
++        for rows, recipe_id in (([{"id": "a", "tenant": "two"}], "a"),
++                                ([{"id": "a", "tenant": "one"}], "missing"),
++                                ([], "a")):
++            for archived in (True, False):
++                with self.subTest(rows=rows, recipe_id=recipe_id, archived=archived):
++                    original = deepcopy(rows)
++                    with self.assertRaises(LookupError):
++                        set_archived(rows, "one", "manager", recipe_id, archived)
++                    self.assertEqual(rows, original)
++
++    def test_non_boolean_states_are_rejected_without_mutation(self):
++        rows = [{"id": "a", "tenant": "one", "archived": False}]
++        original = deepcopy(rows)
++        for archived in (0, 1, None, "false", "true", [], {}):
++            with self.subTest(archived=archived):
++                with self.assertRaises(ValueError):
++                    set_archived(rows, "one", "manager", "a", archived)
++                self.assertEqual(rows, original)
++
++    def test_default_listing_excludes_archived_but_keeps_legacy_rows(self):
++        rows = [{"id": "a", "tenant": "one", "name": "Soup", "notes": "legacy"},
++                {"id": "b", "tenant": "one", "name": "Pie", "archived": True},
++                {"id": "c", "tenant": "two", "name": "Other"},
++                {"id": "d", "tenant": "one", "name": "Salad", "archived": False}]
++        original = deepcopy(rows)
++        found = list_recipes(rows, "one")
++        self.assertEqual(found, [original[0], original[3]])
++        self.assertIsNot(found[0], rows[0])
++        self.assertIsNot(found[1], rows[3])
++        found[0]["name"] = "Changed copy"
++        self.assertEqual(rows, original)
++
++    def test_opt_in_listing_includes_both_states_in_order_as_copies(self):
++        rows = [{"id": "a", "tenant": "one", "archived": True, "name": "Soup"},
++                {"id": "b", "tenant": "two", "archived": True},
++                {"id": "c", "tenant": "one", "archived": False},
++                {"id": "d", "tenant": "one"}]
++        original = deepcopy(rows)
++        found = list_recipes(rows, "one", include_archived=True)
++        self.assertEqual(found, [original[0], original[2], original[3]])
++        for result, source in zip(found, (rows[0], rows[2], rows[3])):
++            self.assertIsNot(result, source)
++        found[0]["archived"] = False
++        self.assertEqual(rows, original)
++        self.assertEqual(list_recipes(rows, "one", include_archived=False), [original[2], original[3]])
++
++    def test_empty_or_unmatched_catalog_lists_are_valid(self):
++        for rows in ([], [{"id": "a", "tenant": "two"}]):
++            self.assertEqual(list_recipes(rows, "one"), [])
++            self.assertEqual(list_recipes(rows, "one", include_archived=True), [])
++
++
++if __name__ == "__main__":
++    unittest.main()

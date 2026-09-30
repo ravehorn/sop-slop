@@ -1,4 +1,4 @@
 interface:
   display_name: "SOP SLOP"
-  short_description: "Turn product ideas and annotations into deployed work"
-  default_prompt: "Use $sop-slop to turn this substantial product change or annotation batch into focused, durable tasks and carry them through the minimum necessary gates to verified production."
+  short_description: "Align intent, build bounded work, prove the result"
+  default_prompt: "Use $sop-slop to turn this idea or annotation batch into aligned, executable work, ask only material questions, and verify the requested outcome."

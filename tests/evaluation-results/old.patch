@@ -1,0 +1,207 @@
+diff --git a/docs/tasks.md b/docs/tasks.md
+index febf8a9..83adcec 100644
+--- a/docs/tasks.md
++++ b/docs/tasks.md
+@@ -1,3 +1,91 @@
+ # Work
+ 
+-- recipe-archive: pending — implement and verify the archive contract.
++- recipe-archive: done — locally verified archive/restore candidate; no publication.
++
++## Mission and route
++
++- Outcome: implement `docs/contract.md` and prove a locally verified candidate.
++- Scope: `service.py`, unittest coverage, and this task record only.
++- Authority: local fixture edits and checks; no remote actions, publication,
++  new Codex tasks, hard deletion, UI, database, or unrelated features.
++- SOP SLOP graph: 0.6.0; evolution / approved-build / T1.
++- Alignment: the supplied contract is settled; implementation and public-API
++  test seams are controller-owned under the user's instruction.
++- Current stage: direct T1 task completed; delivery, cleanup, and run review recorded.
++- Skipped: alignment interviews, product/design/engineering planning reviews,
++  slicing infrastructure, browser QA, ship and deploy. This is one clear library
++  change with no browser or production target.
++- Baseline: `a0b8cab54386ea2dfad7480b52c76e4c1f1da3c8`; clean worktree;
++  `python3 -B -m unittest -v` passed 1 existing test.
++
++## Delivery receipt — recipe-archive-old — 2026-09-06T05:57:02Z
++
++Status: completed at the requested locally verified candidate level.
++Graph version: 0.6.0. Authority used: fixture-only reads, edits, tests, and
++read-only subagent review. No network, release, deletion, or new Codex task.
++
++The sole product change is manager-only tenant-scoped archive/restore plus
++archived-list filtering. Only `service.py`, `test_archive.py`, and this record
++changed; `docs/contract.md` and the existing test remain unchanged.
++
++Evidence:
++
++- Five red-to-green cycles: archive/restore, role denial, strict bool validation,
++  missing/cross-tenant lookup, and archived/legacy listing.
++- `python3 -B -m unittest -v`: 6 tests passed. Both independent reviewers also
++  reran `python3 -B -m unittest -v test_archive test_existing`: 6 tests passed.
++- `git diff --check`: passed.
++- Direct runtime check: active -> archived/hidden -> explicit inclusion -> restored;
++  same-ID recipe in another tenant stayed unchanged.
++- Standards review: accepted, 0 findings. Spec review: accepted, 0 findings.
++- `service.py` SHA-256: `592f7cabfa4e653e89a70f441151886dc1202555b1a73c165ae5604615589308`.
++- `test_archive.py` SHA-256: `bad08da41a6a7ae8a5f6bca1d4174ca0c7fa4ed29b74f92b068864f13285995d`.
++
++Questions asked: 0. No unresolved product or verification blockers. The second
++parallel review dispatch hit the agent limit; running that independent review
++after the first completed resolved the limit. One guessed TDD skill path was
++absent; the installed `/Users/max/.codex/skills/tdd/SKILL.md` was loaded and used.
++
++Observed route: ordinary intake (`intake_to_entry`) followed by the documented
++T1 direct-engineering exit, implementation, and local verification/review.
++No formal graph closure is claimed: the T1 exit has no dedicated graph edge,
++and no typed run-ledger replay was executed. T2/T3 replay requirements were not
++applied to this repository-declared T1 task. This does not invalidate the locally
++verified candidate or imply any release stage ran.
++
++## Resource reconciliation — recipe-archive-old — 2026-09-06T05:57:52Z
++
++Graph version: 0.6.0. Result: reconciled without deletion. Run-owned manifest:
++
++- `/private/tmp/sop-eval-old.YHemdt/docs/tasks.md`: preserved, canonical task and trial evidence.
++- `/private/tmp/sop-eval-old.YHemdt/service.py`: preserved, requested implementation.
++- `/private/tmp/sop-eval-old.YHemdt/test_archive.py`: preserved, runnable regression checks.
++
++Manifest digest (SHA-256 of the ordered absolute targets above, one per line,
++including a trailing newline):
++`9401b5be59aec0ccfc4456522063640b6fdfb42f68cbe1e9910aabf335c9578f`.
++
++The fixture's primary worktree and existing files remain in place. No extra
++worktree, environment, cache, background process, or port was created. Python
++checks used `-B`. Both review agents finished. `git worktree list --porcelain`
++showed only the fixture, and `git status --short --untracked-files=all` showed
++only the three intended files. No deletion card or cleanup consent was needed.
++
++## Automatic run review — recipe-archive-old
++
++Review status: completed. Delivery status: completed. Effective status: completed
++at local-candidate level, with formal graph closure still unproven.
++
++1. Safety/truth: repository isolation, no remote actions, no deletion, and exact
++   verification limits preserved. The supplied contract was not changed.
++2. Correctness: contract tests, runtime lifecycle, Standards review, and Spec
++   review accepted the same unchanged code/test hashes.
++3. Corrections/loops: no human correction; five expected TDD red/green cycles;
++   no post-review implementation repair.
++4. Autonomy/cost: no questions or additional Codex tasks. Two read-only review
++   executions were serialized after the parallel slot limit. A guessed skill
++   path and oversized reference output caused avoidable discovery overhead.
++
++Root-cause class: executor_issue (discovery overhead only, not delivery safety or
++correctness). No improvement proposal: this single run does not establish a
++repeatable policy defect. All artifacts are retained for evaluation.
+diff --git a/service.py b/service.py
+index 46faeb9..7bc7835 100644
+--- a/service.py
++++ b/service.py
+@@ -1,9 +1,20 @@
+ """Small tenant-scoped recipe catalog used only for workflow evaluation."""
+ 
+ 
+-def list_recipes(rows, tenant):
+-    return [dict(row) for row in rows if row["tenant"] == tenant]
++def list_recipes(rows, tenant, include_archived=False):
++    return [
++        dict(row) for row in rows
++        if row["tenant"] == tenant and (include_archived or not row.get("archived", False))
++    ]
+ 
+ 
+ def set_archived(rows, tenant, role, recipe_id, archived):
+-    raise NotImplementedError("Archive and restore are not implemented")
++    if role != "manager":
++        raise PermissionError("Only managers may archive or restore recipes")
++    if not isinstance(archived, bool):
++        raise ValueError("archived must be a bool")
++    for row in rows:
++        if row["tenant"] == tenant and row["id"] == recipe_id:
++            row["archived"] = archived
++            return dict(row)
++    raise LookupError("Recipe not found")
+diff --git a/test_archive.py b/test_archive.py
+new file mode 100644
+index 0000000..355d6fb
+--- /dev/null
++++ b/test_archive.py
+@@ -0,0 +1,76 @@
++import unittest
++
++from service import list_recipes, set_archived
++
++
++class ArchiveTests(unittest.TestCase):
++    def test_listing_filters_archived_and_preserves_legacy_order_and_copies(self):
++        rows = [
++            {"id": "hidden", "tenant": "one", "name": "Pie", "archived": True},
++            {"id": "legacy", "tenant": "one", "name": "Soup", "extra": 7},
++            {"id": "other", "tenant": "two", "name": "Cake"},
++            {"id": "active", "tenant": "one", "name": "Salad", "archived": False},
++        ]
++        before = [dict(row) for row in rows]
++        self.assertEqual(list_recipes(rows, "one"), [rows[1], rows[3]])
++        self.assertEqual(list_recipes(rows, "one", include_archived=False), [rows[1], rows[3]])
++        included = list_recipes(rows, "one", include_archived=True)
++        self.assertEqual(included, [rows[0], rows[1], rows[3]])
++        for row in included:
++            row["name"] = "Changed"
++        self.assertEqual(rows, before)
++        self.assertEqual(list_recipes([], "one"), [])
++        self.assertEqual(list_recipes([], "one", include_archived=True), [])
++        self.assertEqual(list_recipes(rows, "missing", include_archived=True), [])
++
++    def test_missing_cross_tenant_and_empty_catalog_raise_without_mutation(self):
++        for rows, recipe_id in (([], "a"),
++                                ([{"id": "a", "tenant": "two"}], "a"),
++                                ([{"id": "a", "tenant": "one"}], "missing")):
++            before = [dict(row) for row in rows]
++            for archived in (True, False):
++                with self.subTest(rows=rows, recipe_id=recipe_id, archived=archived):
++                    with self.assertRaises(LookupError):
++                        set_archived(rows, "one", "manager", recipe_id, archived)
++                    self.assertEqual(rows, before)
++
++    def test_archived_must_be_bool_without_mutation(self):
++        for archived in (0, 1, None, "false", "true", [], {}):
++            with self.subTest(archived=archived):
++                rows = [{"id": "a", "tenant": "one", "name": "Soup"}]
++                with self.assertRaises(ValueError):
++                    set_archived(rows, "one", "manager", "a", archived)
++                self.assertEqual(rows, [{"id": "a", "tenant": "one", "name": "Soup"}])
++
++    def test_other_roles_cannot_archive_or_restore(self):
++        for role in ("cook", "admin", "Manager", "", None):
++            for archived in (True, False):
++                with self.subTest(role=role, archived=archived):
++                    rows = [{"id": "a", "tenant": "one", "name": "Soup"}]
++                    with self.assertRaises(PermissionError):
++                        set_archived(rows, "one", role, "a", archived)
++                    self.assertEqual(rows, [{"id": "a", "tenant": "one", "name": "Soup"}])
++
++    def test_archive_restore_preserves_rows_and_returns_copies(self):
++        other_tenant = {"id": "a", "tenant": "two", "name": "Pie"}
++        target = {"id": "a", "tenant": "one", "name": "Soup", "cost": 5}
++        sibling = {"id": "b", "tenant": "one", "name": "Salad"}
++        rows = [other_tenant, target, sibling]
++        for archived in (True, True, False, False):
++            with self.subTest(archived=archived):
++                result = set_archived(rows, "one", "manager", "a", archived)
++                self.assertEqual(result, {
++                    "id": "a", "tenant": "one", "name": "Soup", "cost": 5,
++                    "archived": archived,
++                })
++                self.assertIs(rows[1], target)
++                self.assertEqual(target, result)
++                result["name"] = "Changed"
++                self.assertEqual(target["name"], "Soup")
++                self.assertEqual(rows[0], {"id": "a", "tenant": "two", "name": "Pie"})
++                self.assertEqual(rows[2], {"id": "b", "tenant": "one", "name": "Salad"})
++                self.assertEqual(len(rows), 3)
++
++
++if __name__ == "__main__":
++    unittest.main()

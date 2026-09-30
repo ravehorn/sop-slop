@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "version": "0.7.1",
+  "phases": ["understand", "plan", "build", "check", "release", "finish"],
+  "edges": [
+    ["understand", "plan", "alignment_locked"],
+    ["plan", "build", "implementation_lane_and_plan_covered"],
+    ["plan", "check", "artifact_lane_and_plan_covered"],
+    ["build", "check", "candidate_frozen"],
+    ["check", "build", "bounded_repair"],
+    ["check", "release", "candidate_verified_and_release_requested"],
+    ["check", "finish", "local_requested_completion_verified"],
+    ["release", "finish", "requested_release_and_live_checks_verified"]
+  ],
+  "question_check_in_interval": 3,
+  "repair_budget": 3,
+  "review_classes": ["no_issue", "executor_issue", "graph_issue", "policy_issue"],
+  "active_input_classes": ["continuation_or_dependency", "side_quest", "explicit_replacement", "result_question"],
+  "sealed_input_classes": ["result_question", "successor_mission"],
+  "hard_rules": [
+    "no_unclassified_input_before_execution",
+    "no_silent_contract_change",
+    "no_unanswered_material_decision_before_closure",
+    "one_writer_per_git_common_directory",
+    "checks_require_observed_exit_and_unchanged_subject",
+    "acceptance_checks_cover_every_requirement",
+    "test_definition_changes_require_replan",
+    "release_authority_does_not_come_from_passing_checks",
+    "delivery_sealed_before_cleanup_and_review",
+    "uncertain_dispatch_never_retried_blindly",
+    "no_automatic_destructive_cleanup",
+    "learning_is_proposal_only"
+  ]
+}

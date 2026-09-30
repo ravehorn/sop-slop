@@ -1,23 +1,39 @@
 # SOP SLOP
 
-SOP SLOP is a focused product-delivery graph for Codex. It combines Matt Pocock's alignment and specification skills with gstack's product, engineering, design, QA, ship, and deployment workflow.
+SOP SLOP turns product ideas and observations into aligned, executable work and verified results. Version 0.8 adds opt-in parallel worktree development and serialized delivery to the small local supervisor, alongside Matt Pocock's and gstack's upstream-maintained techniques.
 
 It is designed for substantial features, product-domain changes, and end-to-end product reviews—not small, already-clear fixes.
 
 ## What it changes
 
-- binds one primary mission and observable completion target
-- turns annotation batches into fully covered, deduplicated problem ledgers with one durable canonical task per accepted problem
-- executes clear annotation problems one at a time and asks only the material questions needed for ambiguous ones
-- moves unrelated side quests into linked tasks when authorized, without pivoting the parent run
-- records an alignment lock before transferring reversible technical and version decisions to the controller
-- treats nested skill finals as stage evidence rather than permission to stop
-- lets eligible product, design, engineering, review, QA, and learning stages call one bounded peer-deliberation protocol and return to the exact caller
-- continues an explicitly authorized full-delivery run through production verification
-- reconciles run-owned worktrees, processes, environments, and caches at finalization while preserving user work and gating exact destructive targets
-- records a run receipt, cleanup receipt, and automatic review before closure
+- starts from concrete behavior examples; settled decisions do not trigger another interview
+- checks in after three answered material questions without capping necessary clarification; routine choices stay delegated
+- preserves the mission, annotation mapping and pending work in local SQLite state
+- captures real check exits and binds proof to the candidate and assertion files
+- rejects stale evidence, rejected reviews, competing writers and uncertain spawn retries
+- seals delivery before resource reconciliation and run review
+- keeps upstream skills updateable and runs only needed specialist lenses
+- gives independent peers their own worktree leases, scoped test locks, a FIFO
+  delivery lane and a compact mailbox without a central orchestrator
 
-The active graph is supervised and inspectable: 41 nodes, 102 edges, typed evidence, named guards, bounded back-edges, and release authority gates.
+See [coordination and safe adoption](sop-slop/references/coordination.md).
+Activation requires a drained checkpoint and explicitly fences older controllers;
+do not overwrite an active run's pinned package.
+
+Version 0.8.1 adds [bounded testing and explicit evidence reuse](sop-slop/references/evidence-reuse.md):
+keep focused repairs narrow and qualify once at a coherent release boundary.
+Eligible unchanged checks may retain original proof across HEAD-only or reviewed
+narrative changes after a fresh environment observation. Release and production
+observations stay exact-revision checks. Adoption is explicit; existing pins remain.
+
+Six active phases: understand, plan, build, check, release, finish. This is an
+in-task supervisor, not a background service, sandbox, host hook or guarantee of
+honest agent behavior. Host permissions remain authoritative. The old 41-node
+graph and replay fixtures remain available as legacy diagnostics.
+
+See the [architecture decision](docs/v0.7-design.md),
+[CLI guide](sop-slop/references/supervisor-guide.md), and
+[comparison and test evidence](docs/v0.7-evaluation.md).
 
 ## Requirements
 
@@ -25,7 +41,7 @@ The active graph is supervised and inspectable: 41 nodes, 102 edges, typed evide
 - Git
 - Node.js/npm (`npx`)
 - [Bun](https://bun.sh/) for gstack
-- Python 3 for graph validation
+- Python 3.9+ for the standard-library supervisor and validation
 
 ## One-command install
 
@@ -73,7 +89,10 @@ Release and linked-task authority still come from the request and repository rul
 ./scripts/verify-package.sh
 ```
 
-The check validates the skill, graph policy, 66 negative graph cases, 23 adversarial deliberation receipts, 5 adversarial cleanup receipts, annotation-batch and two-profile deliberation forward runs, synthetic closure, default and all-Matt install plans, gstack origin enforcement, rerun routing, and non-git/wrong-remote refusal without downloading dependencies.
+The check runs disposable supervisor integration/failure tests, legacy graph and
+replay diagnostics, and installer tests without downloading dependencies. The
+evaluation report separates deterministic enforcement tests from live-agent
+behavior and simulated release observations from real production evidence.
 
 ## Upstream projects
 

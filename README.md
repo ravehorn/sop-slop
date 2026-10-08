@@ -20,11 +20,14 @@ See [coordination and safe adoption](sop-slop/references/coordination.md).
 Activation requires a drained checkpoint and explicitly fences older controllers;
 do not overwrite an active run's pinned package.
 
-Version 0.8.1 adds [bounded testing and explicit evidence reuse](sop-slop/references/evidence-reuse.md):
+Version 0.8.2 adds [execution readiness and bounded evidence reuse](sop-slop/references/evidence-reuse.md):
 keep focused repairs narrow and qualify once at a coherent release boundary.
-Eligible unchanged checks may retain original proof across HEAD-only or reviewed
-narrative changes after a fresh environment observation. Release and production
-observations stay exact-revision checks. Adoption is explicit; existing pins remain.
+Missing assertion files fail at plan time; declared prerequisites gate expensive
+checks and readiness gates freeze. Failed-run continuations retain repair budgets.
+Eligible proof can be reused during build/check with a fresh environment observation;
+optional reviewed dependency closures require exact outside-change review.
+Release and production observations stay exact-revision checks. Adoption is explicit;
+existing pins remain. See [scope and verification](docs/ru01-execution-improvements.md).
 
 Six active phases: understand, plan, build, check, release, finish. This is an
 in-task supervisor, not a background service, sandbox, host hook or guarantee of

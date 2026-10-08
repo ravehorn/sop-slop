@@ -3,7 +3,7 @@ name: sop-slop
 description: Use for substantial product features, domain changes, or annotation batches that need intent alignment, bounded implementation and verified delivery. Also use for explicitly requested product reviews or strategy decisions. Not for isolated, already-clear small fixes.
 ---
 
-# SOP SLOP v0.8.1
+# SOP SLOP v0.8.2
 
 Turn what the user means into working, checked behavior. Keep one mission, ask
 only questions that change it, and continue until its requested finish is proved
@@ -115,10 +115,12 @@ a regression. Full-map live sweeps are separately scoped work, not routine overh
 If no map exists, follow existing project docs and propose one only when useful;
 do not create a new map or audit unrelated features on every task.
 
-1. Register checks covering every acceptance criterion: executable commands,
-   assertion files and whether red-to-green proof is required. Write tests before
-   behavior code where practical. Inspect assertions: exit zero alone does not
-   prove meaningful behavior. Use real browser/runtime checks for visible flows.
+1. Map each criterion/layer to real assertions, dependencies, receipt and remaining
+   obligation in the existing plan/runner. Assertion files must exist at plan time.
+   Prove an ordinary authentic user journey early, including existing-data edit/save
+   and recovery where relevant; helper coverage is not a substitute. Put cheap
+   oracle/environment checks in `requires` before expensive checks, and declare
+   `freeze_requires` for the journey/readiness proof. No second acceptance catalog.
 2. Follow [scoped coordination](references/coordination.md). After explicit
    activation, acquire your own worktree writer lease before implementation.
    Independent worktrees develop concurrently; never edit another owner's tree.
@@ -126,13 +128,16 @@ do not create a new map or audit unrelated features on every task.
    a named shared resource claim or an explicitly verified isolated environment.
    Before activation the legacy repository-wide lease remains in force. Do not
    switch a running peer or steal a stale lease. Each peer owns its own run state.
-3. Run the registered test with JSON `phase: "red"`, implement the slice, freeze,
-   then run candidate checks. Keep generated test artifacts outside the candidate
+3. Run the registered test with JSON `phase: "red"`, finish planned implementation
+   in build, prove readiness, then freeze. Planned unfinished work is not a frozen
+   candidate repair. Keep generated test artifacts outside the candidate
    or in intentionally ignored output paths. Do not count setup/import failures
    as the intended red proof.
 4. Failures and review findings are work. `repair` reopens a bounded build; fix
    the root cause and recheck. `revise` explicitly changes the plan/test definition
    and invalidates proof. Never remove a failing assertion merely to get green.
+   Resume the same run; a declared failed/blocked continuation inherits repairs,
+   not new authority. Renaming/restarting a mission must not reset its budget.
 5. Independent review inspects the current candidate and returns accepted,
    revision_required or fatal with evidence. Record the real reviewer/tool source;
    do not invent an identity. Rejection blocks even an optional review. If required
@@ -142,8 +147,10 @@ The supervisor observes exit status, bounded output and runtime, and binds proof
 to code content, plan generation and assertions. Relevant changes need fresh verification.
 Use one integrated qualification at the coherent release boundary, not focused
 test → full suite → commit → identical full suite. Explicit `reuse` may bind an
-eligible original pass to a HEAD-only/approved narrative candidate after unchanged
-dependencies and a fresh environment observation are proved. It never reuses an
+eligible original pass during build or check after unchanged dependencies and a
+fresh environment observation are proved. Full-repository scope remains the default;
+an optional independently reviewed dependency closure also needs exact outside-delta
+review. It never infers that unrelated-looking code is safe. It never reuses an
 exact release/production observation or retrofits missing historical fingerprints.
 Freeze still clears review; `review-reuse` explicitly retains only unchanged
 reviewed content with approved narrative deltas. Real code fixes get targeted

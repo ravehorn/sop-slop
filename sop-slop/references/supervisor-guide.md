@@ -56,6 +56,14 @@ Release targets need exact `release_target`, an `authority` subset of `commit`,
 `push`, `pr`, `merge`, `deploy`, `production_read`, and `authority_source` when
 nonempty. Empty authority can start a run but cannot pass release. Never invent it.
 
+Resume existing work instead of restarting. An explicitly linked successor adds
+`continues_run:"run-parent"` at start. The parent must belong to this actor/worktree,
+be failed/blocked, have no pending execution and have reconciled resources. Exactly
+one successor may inherit its repair count; its budget cannot exceed the parent's.
+Lineage is immutable and contract revisions cannot increase the budget. Claims,
+receipts and extra authority are not inherited. Exact-contract failed restarts
+without the link are rejected; semantic mission equivalence still needs judgment.
+
 ## Alignment and plan
 
 - `lock`: `source_ref`, `basis` (why requirements are settled).
@@ -75,6 +83,7 @@ nonempty. Empty authority can start a run but cannot pass release. Never invent 
 ```json
 {
   "source_ref": "docs/plan.md",
+  "freeze_requires": ["restore"],
   "checks": [{
     "id": "restore",
     "kind": "behavior",
@@ -92,6 +101,17 @@ Check kinds: `behavior`, `regression`, `required`, `artifact`, `release`,
 `production`, `environment`. Environment collectors have no product criteria and
 cannot be reused. See [explicit evidence reuse](evidence-reuse.md) for opt-in check
 policies, fresh environment identity and independent narrative-delta approval.
+Checks may declare `requires:["preflight-id"]` and optional
+`prerequisite_max_age_seconds` (1–600). Referenced checks must be registered;
+self/unknown/cyclic dependencies, including reuse-environment cycles, are rejected.
+Candidate checks cannot require release checks. Run prerequisites explicitly; this
+is a gate, not a scheduler. Admission requires current subject, plan, definitions,
+assertions and observed passes throughout the prerequisite ancestry. Receipts name
+the prerequisite receipts used. A later failed prerequisite invalidates dependent
+proof even after that prerequisite recovers; rerun the affected downstream checks.
+Freshness applies when launching/reusing a dependent check, not retrospectively
+after a long successful execution. `freeze_requires` lists non-release readiness
+checks that must already pass before freezing; omission preserves old behavior.
 Every criterion needs a behavior/artifact check. Release needs a
 release check; staging/production also need a live production check. Inspect
 assertions: broad expected error text is not enough if failure is unrelated to the
@@ -101,7 +121,8 @@ checks when appropriate, explaining the test choice in the canonical plan.
 Arguments are literal, not shell expansion. Deliberate shell commands retain all
 host privileges; this is not a sandbox. No credentials in arguments/artifacts.
 Use existing integrations/environment, and avoid commands that dump secrets.
-Test files must exist before check. Working directory is repo root. Timeout is
+Test files must exist inside the repository before **plan registration** and are
+rechecked before execution. Working directory is repo root. Timeout is
 1–600 seconds; output over 1 MiB fails. Only a redacted 4 KiB tail is retained.
 Redaction is best effort, so select safe commands. Failed results remain durable.
 
@@ -113,7 +134,11 @@ Redaction is best effort, so select safe commands. Failed results remain durable
   run/process/worktree, then close/release through that recorded owner before
   acquiring a new lease. Do not erase state to bypass another writer.
 - `check`: `id`, `phase` (`red` before implementation; `candidate` after freeze).
-  Phase is JSON input, not a CLI flag.
+  Phase is JSON input, not a CLI flag. Non-red checks also run during build;
+  finish planned implementation and prove readiness before freezing.
+  Identity-only `environment` checks and guarded `reuse` may observe/bind changed
+  content during check without changing the frozen candidate. Refreeze after
+  readiness is proved; ordinary product/release checks and seal remain strict.
 - `freeze`: empty object, binds HEAD plus tracked/nonignored working-tree files.
   Commit first for release. Changes require refreezing; eligible unchanged proof
   may then use explicit `reuse`/`review-reuse`, never implicit acceptance. Relevant
@@ -123,6 +148,7 @@ Redaction is best effort, so select safe commands. Failed results remain durable
   `fatal`), `finding`, `source_ref`. This is explicitly host review attestation,
   not observed subprocess truth. Review the current frozen candidate.
 - `repair`: `reason`, bounded return to build preserving failures.
+  `status` exposes cumulative `repairs` and the effective `repair_budget`.
 - `revise`: `reason`, `source_ref`, optional full `contract` if user intent changes.
   New contracts return to alignment; plan-only revisions return to plan. The next
   plan generation invalidates previous proof without deleting it. Do not replan

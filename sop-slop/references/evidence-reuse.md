@@ -22,12 +22,22 @@ DAG. For example, an earlier persistence case cannot require managed actions fro
 a later slice which itself depends on that persistence work. Record precursor
 proof separately from later managed integration; never rename it into a pass.
 
+Exercise one ordinary authentic user journey early: open an existing rich record,
+edit/save it, correct a real failure and retry where those belong to the outcome.
+Use existing data shapes, entry points and server effects. Qualified helper leaves
+do not compensate for a broken normal journey. Keep this proof as a declared
+`freeze_requires` check, not a separate approval form. Finish planned build work
+before freezing; reserve repair cycles for actual candidate defects.
+
 For each test layer name its distinct risk, case IDs, real assertions, fixture and
 environment. One adequate execution can cover several case IDs through one check's
 `criteria` list when **all** assertions actually run in the matching environment.
 Do not invent an alias pass for an unexecuted assertion. Review oracle and fixture
 adequacy before costly execution; distinguish missing adapters from missing
 product behavior. Keep remaining obligations visible with their proper owner.
+Maintain the mapping in the existing plan/runner: case and layer → assertion file/
+entry point → prerequisites → receipt → remaining layer. Files must exist before
+registration; an exit-zero catalog validator does not prove executable coverage.
 
 ## Select tests from the causal change
 
@@ -52,6 +62,10 @@ Prefer existing structured tool results, stable identities and exact values;
 browser assertions should check observable product invariants rather than invent
 a required answer template. Display tolerance must preserve business values,
 stable IDs, permissions, absence of duplicate effects and expected error behavior.
+Normalize numeric display only where values are equivalent (for example `12.50`
+and `12.5`); do not round away meaningful differences. Assert refusals at the actual
+mutation boundary, and preserve the distinction between paused, stale and failed.
+Smoke-import the retained build's real runtime modules before a long journey.
 
 For diagnostic/parser/format-only repairs, run the **same helper/assertion** offline
 first, using existing fixtures or the smallest shared seam, then run one final
@@ -66,6 +80,14 @@ diagnose the shared environment. Preserve failing receipts. Resume only after th
 actual environmental predicate is repaired or a safe isolated alternative exists.
 Do not turn a timeout into a skip/pass or silently remove the case.
 
+Before resource-heavy execution, observe the actual workload/environment: required
+services healthy, free disk for measured growth, memory headroom, fixture baseline,
+build/runtime dependencies and ownership of shared resources. Use workload-specific
+thresholds justified by measurements, not universal RAM/disk guesses. Register this
+cheap admission check in the dependent check's `requires`; use bounded freshness
+when the measurements expire. Preserve database disks and stopped services; do not
+delete or restart them without scoped authority.
+
 Use focused checks during development and **one integrated** qualification at a
 coherent release boundary. A relevant executable change after qualification needs
 affected reverification; this is not permission to reuse stale evidence. Keep
@@ -79,18 +101,28 @@ or propose a smaller safe boundary with exact retained/deferred obligations befo
 another broad round. This applies before freezing too; the frozen-candidate repair
 counter is not a substitute. No automatic deadline pass, scope deletion, new
 authority or promise that all complex work fits a day.
+Revisions preserve repair usage and may not increase its cap. A failed/blocked
+successor must declare `continues_run`, preserving count and cap after the owner
+has stopped and reconciled resources. Renaming a mission to evade this is prohibited;
+the controller detects exact-contract restarts, not semantic equivalence of prose.
 
 Report separately: **implemented** locally, **qualified** for named environment,
 and **deployed** at exact revision/target. Publish a fixed remaining-predicate list,
 not an expanding “gaps” count. Authorization blockers need authorization resolution,
 not more tests. Preserve scoped worktree development and real shared-resource locks.
 
-## Explicit evidence equivalence (v0.8.1)
+Use one dated current-state summary in the existing canonical owner; label older
+snapshots as history. Keep a compatible committed rollback baseline and its exact
+build/runtime identity; preserve a failed artifact separately. A later HEAD fix is
+not present in a retained older artifact. Resolve provider/task spending authority
+conflicts explicitly: an inactive/unproved profile is a blocker, not permission for
+another paid trial, and stub proof is never provider proof.
 
-**Mechanism limit:** any real code change invalidates every reusable check's
-conservative repository fingerprint. This release solves HEAD/prose reruns, not
-automatic retention of unaffected acceptance after code repairs. It does not
-implement independently reviewed per-check dependency closures.
+## Explicit evidence equivalence (v0.8.2)
+
+The default conservative repository fingerprint invalidates product proof on real
+code changes. An optional reviewed per-check dependency closure can retain truly
+unaffected evidence; it is explicit engineering judgment, not dependency inference.
 
 The practical narrow-testing path is to select a bounded implementation run's
 acceptance checks before execution: register its causally relevant behavior and
@@ -99,8 +131,8 @@ obligations in the canonical plan and qualify them in the integration/release ru
 at the coherent boundary. A narrow run's seal means only its stated local target;
 it cannot claim integration or deployed completion. During repairs run focused
 diagnostics first and delay the broad qualification until the fix is stable.
-If a full suite is already registered as a gate, a real code repair still requires
-that gate before sealing. Do not delete it to get green; any genuine rescope must
+If a full suite is already registered as a gate, it still needs current proof before
+sealing. Do not delete it to get green; any genuine rescope must
 be explicit, reviewed and preserve its obligations at the proper delivery gate.
 
 The candidate remains HEAD plus all tracked/nonignored files. Freeze still clears
@@ -152,8 +184,9 @@ checks never become reuse sources.
 
 After a HEAD-only or approved narrative change:
 
-1. Freeze the new exact candidate.
-2. Run only the inexpensive environment check again for that frozen candidate.
+1. Stay in build if readiness is not yet proved, or freeze the new exact candidate
+   when there are no missing readiness prerequisites.
+2. Run only the inexpensive environment check again for that exact subject.
 3. Call `reuse` with product check `id` and the **original observed**
    `source_receipt_id`. Reused receipts cannot become sources. Later failures
    block older evidence reuse; unknown snapshots require an ordinary check.
@@ -165,6 +198,14 @@ After a HEAD-only or approved narrative change:
    to change behavior/criteria there. If it changes either, replan/rerun affected
    proof; do not sign a narrative-only attestation.
 
+In build, reuse binds the current exact subject so a declared readiness gate can
+accept equivalent proof *before* freeze. Freeze still checks those receipts and
+clears candidate review. Never freeze early solely to make evidence reusable.
+After an already-frozen candidate changes, identity-only environment observation
+and guarded reuse may likewise bind the current subject without spending a repair
+or resetting the plan. The frozen candidate is not changed by either operation:
+refreeze before seal; ordinary product/release checks still require the candidate.
+
 No directories/globs, executable/symlink files, AGENTS.md, SKILL.md or assertion
 files may be excluded. The controller checks identities; it cannot determine prose
 meaning or authenticate reviewers. This remains an explicit engineering judgment,
@@ -175,6 +216,29 @@ ID and `executed_at`, new `reused_at`, fresh environment receipt ID and new cand
 binding. It is **not** a new product execution. Original receipts stay unchanged.
 Each named check still has to cover its registered assertions; reuse does not
 create new case mappings or migrate evidence between plan epochs/contracts.
+
+### Optional reviewed dependency closure
+
+Before the original execution, add `dependency_paths` (nonempty exact existing
+internal file paths) and `dependency_coverage` to the check's `reuse` policy. The
+independent scope review must account for source/callers, schemas, fixtures, shared
+helpers, configuration, dependency locks, dynamic inputs and environment coverage.
+No globs, directories, path aliases or symlinks. A missing/deleted included file
+fails closed. Original scoped execution requires clean committed source. All
+registered assertion files remain hashed even when outside this list or ignored.
+
+The controller also fingerprints every nonignored file outside the closure, except
+approved narrative paths. On an outside change, `reuse` additionally requires:
+
+```json
+{"impact_review": {"before": "original outside_dependencies digest", "after": "current outside_dependencies digest", "reviewer": "actual independent reviewer", "source_ref": "actual delta review", "finding": "why closure remains complete and unaffected"}}
+```
+
+Obtain digests from the original `reuse_evidence` and current
+`Supervisor.reuse_dependencies`; inspect the actual original-to-current delta,
+including new/deleted files, new callers and shared contracts. Matching hashes do
+not establish closure completeness. If impact is uncertain, rerun affected checks.
+This policy never narrows independent candidate review or release observations.
 
 ## Review and release identity
 

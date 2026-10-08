@@ -25,9 +25,9 @@ claims, and fences **all legacy controller writes** in this repository. Existing
 old connections are fenced too. Their read-only status still works. Activation
 does not transfer any owner's claim and does not grant release authority.
 
-Each owner calls `adopt` on its original v0.7.1 run with its original actor and
-`source_ref`. Only the exact archived v0.7.1 graph is admitted; other versions must
-use their pinned package or explicit successor. Adoption requires a clean tree,
+Each owner calls `adopt` on its original run with its original actor and
+`source_ref`. Only exact archived v0.7.1, v0.8.0 and v0.8.1 graphs are admitted;
+other versions must use their pinned package or explicit successor. Adoption requires a clean tree,
 no pending input/execution, and unchanged frozen subject/assertions when present.
 It records the old version, graph and receipt IDs without rewriting old events,
 receipts, plan epoch, skill pins or product scope. Preserve the old skill path;

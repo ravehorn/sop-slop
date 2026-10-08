@@ -34,7 +34,7 @@ class ReuseEdges(unittest.TestCase):
         for key in ('receipts','review_history','plan_epoch'):
             self.assertEqual(after[key],state[key])
         self.assertEqual(list(self.sup.db.execute('SELECT * FROM claims')),claims)
-        self.assertEqual(after['version'],'0.8.1')
+        self.assertEqual(after['version'],m.VERSION)
 
     def test_ignored_assertion_invalidation_includes_review(self):
         self.write('.git/info/exclude','test_product.py\n')

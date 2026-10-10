@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "0.8.2",
+  "version": "0.8.1",
   "phases": ["understand", "plan", "build", "check", "release", "finish"],
   "edges": [
     ["understand", "plan", "alignment_locked"],
@@ -29,8 +29,6 @@
     "release_and_production_observations_are_never_reused",
     "acceptance_checks_cover_every_requirement",
     "test_definition_changes_require_replan",
-    "declared_prerequisites_and_readiness_require_observed_proof",
-    "declared_continuations_preserve_effective_repair_budget",
     "release_authority_does_not_come_from_passing_checks",
     "delivery_sealed_before_cleanup_and_review",
     "uncertain_dispatch_never_retried_blindly",

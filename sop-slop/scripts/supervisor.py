@@ -22,6 +22,7 @@ GRAPH = json.loads(GRAPH_PATH.read_text())
 VERSION = GRAPH["version"]
 LEGACY_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.7.1.json").read_text())
 PRIOR_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.8.0.json").read_text())
+REUSE_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.8.1.json").read_text())
 TARGETS = {"decision_complete", "spec_complete", "review_complete", "candidate_verified",
            "pr_opened", "merged", "staging_verified", "production_verified"}
 RELEASES = {"pr_opened": "pr", "merged": "merge", "staging_verified": "staging",
@@ -208,7 +209,7 @@ class Supervisor:
         require(row is not None, "unknown run")
         state = json.loads(row[0])
         require(state["repo"] == str(self.repo), "run belongs to another worktree; use its recorded repository")
-        graph = {g['version']: g for g in (LEGACY_GRAPH, PRIOR_GRAPH)}.get(state['version'], LEGACY_GRAPH) if legacy else GRAPH
+        graph = {g['version']: g for g in (LEGACY_GRAPH, PRIOR_GRAPH, REUSE_GRAPH)}.get(state['version'], LEGACY_GRAPH) if legacy else GRAPH
         require(state["version"] == graph['version'], "run version differs; resume with its pinned supervisor or explicitly adopt")
         require(state["graph_digest"] == digest(graph), "graph changed; resume with its pinned supervisor")
         require(state["contract_digest"] == digest(state["contract"]), "contract integrity mismatch")
@@ -374,12 +375,24 @@ class Supervisor:
                     'narrative exclusion cannot be executable or an external/symlink input')
         return paths
 
-    def reuse_dependencies(self, s, paths):
+    def dependency_paths(self, paths):
+        strings(paths, 'dependency paths')
+        for name in paths:
+            path = self.repo/name
+            require(not Path(name).is_absolute() and Path(name).as_posix()==name and '..' not in Path(name).parts and
+                    not any(c in name for c in '*?[') and path.resolve()==path and
+                    not path.is_symlink() and path.is_file(), 'dependency paths must be exact existing internal files')
+        return paths
+
+    def reuse_dependencies(self, s, paths, dependencies=None):
         assertions = [p for c in s['checks'] for p in c['test_files']]
         self.narrative_paths(paths, assertions)
         names = sorted(set(git(self.repo,'ls-files','-z','--cached','--others','--exclude-standard').split(b'\0')) - {b''})
-        return {'dependencies':digest([(os.fsdecode(n),file_hash(self.repo/os.fsdecode(n))) for n in names if os.fsdecode(n) not in paths]),
+        files = {os.fsdecode(n):file_hash(self.repo/os.fsdecode(n)) for n in names if os.fsdecode(n) not in paths}
+        scoped = {} if dependencies is None else {p:file_hash(self.repo/p) for p in self.dependency_paths(dependencies)}
+        return {'dependencies':digest(sorted((files if dependencies is None else scoped).items())),
                 'assertions': {c['id']:self.assertions(c) for c in s['checks']},
+                **({'outside_dependencies':digest(sorted((p,h) for p,h in files.items() if p not in scoped))} if dependencies is not None else {}),
                 'narratives':{p:file_hash(self.repo/p) for p in paths}}
 
     def environment_receipt(self, s, definition):
@@ -400,6 +413,13 @@ class Supervisor:
     def equivalent(self, before, after, d, actor):
         require(before['dependencies']==after['dependencies'], 'executable/check dependency content changed')
         require(before.get('assertions')==after['assertions'], 'registered assertion dependency changed')
+        if before.get('outside_dependencies') != after.get('outside_dependencies'):
+            review = d.get('impact_review')
+            require(isinstance(review,dict) and review.get('before')==before.get('outside_dependencies') and
+                    review.get('after')==after.get('outside_dependencies'), 'independent exact outside-scope impact review required')
+            require(text(review.get('reviewer'),'impact reviewer')!=actor, 'impact review must be independent')
+            text(review.get('source_ref'),'actual dependency and delta review source')
+            text(review.get('finding'),'dependency closure remains complete and behavior unaffected')
         changes = {p:{'before':v,'after':after['narratives'].get(p)} for p,v in before['narratives'].items()
                    if v != after['narratives'].get(p)}
         require(set(before['narratives'])==set(after['narratives']), 'narrative policy changed')
@@ -412,8 +432,8 @@ class Supervisor:
             text(approval.get('finding'),'narrative-only finding; no behavior or criteria change')
 
     def reuse_receipt(self, s, d):
-        self.candidate_ok(s)
-        require(s['phase']=='check','reuse only non-release candidate checks')
+        require(s['phase'] in ('build','check'),'reuse only non-release build/candidate checks')
+        current_subject = subject(self.repo)
         if s['contract']['lane'] in BUILD_LANES:
             self.has_writer(s)
         if self.parallel():
@@ -429,15 +449,18 @@ class Supervisor:
         later = s['receipts'][s['receipts'].index(source)+1:]
         require(not any(r['check_id']==definition['id'] and r.get('plan_epoch')==s['plan_epoch'] and
                         r['phase']!='red' and r['result']!='pass' for r in later), 'later failure blocks older evidence reuse')
-        current = self.reuse_dependencies(s,definition['reuse']['narrative_paths'])
+        prerequisites = self.prerequisites(s,definition.get('requires',[]),definition.get('prerequisite_max_age_seconds'),s['receipts'].index(source))
+        current = self.reuse_dependencies(s,definition['reuse']['narrative_paths'],definition['reuse'].get('dependency_paths'))
         self.equivalent(source['reuse_evidence'],current,d,s['contract']['actor'])
         env = self.environment_receipt(s,definition)
         old_env = source['reuse_evidence']['environment']
         require(all(env[k]==old_env[k] for k in ('output_digest','definition_digest','assertions_digest')), 'environment identity or collector changed')
-        receipt = {**source,'id':'reuse-'+uuid.uuid4().hex[:12],'subject':s['candidate'],
+        receipt = {**source,'id':'reuse-'+uuid.uuid4().hex[:12],'subject':current_subject,
                    'provenance':'explicit_evidence_reuse','source_receipt_id':source['id'],
                    'executed_at':source['finished_at'],'reused_at':time.time(),
-                   'environment_receipt_id':env['receipt_id'],'narrative_review':d.get('narrative_review')}
+                   'environment_receipt_id':env['receipt_id'],'narrative_review':d.get('narrative_review'),
+                   'impact_review':d.get('impact_review'),'prerequisite_receipt_ids':prerequisites}
+        require(subject(self.repo)==current_subject,'subject changed during reuse')
         s['receipts'].append(receipt)
         self.save(s,'evidence_reused',{'source_receipt_id':source['id'],'id':receipt['id']})
         return receipt
@@ -459,6 +482,31 @@ class Supervisor:
         require(s["candidate"] is not None, "freeze a candidate first")
         require(subject(self.repo) == s["candidate"], "candidate changed; repair and reverify")
 
+    def prerequisites(self, s, ids, max_age=None, before=None):
+        definitions = {c['id']:c for c in s['checks']}
+        pending, visited, receipts = [(cid,before) for cid in ids], set(), []
+        current_subject = subject(self.repo)
+        while pending:
+            cid, boundary = pending.pop()
+            if (cid,boundary) in visited:
+                continue
+            visited.add((cid,boundary))
+            definition = definitions[cid]
+            matches = [(i,r) for i,r in enumerate(s['receipts']) if r['check_id']==cid and r.get('plan_epoch')==s['plan_epoch'] and r['phase']!='red']
+            require(matches, 'missing prerequisite: '+cid)
+            index, receipt = matches[-1]
+            require(boundary is None or not any(i>boundary and r['result']!='pass' for i,r in matches),
+                    'intervening prerequisite failure requires downstream rerun: '+cid)
+            require(receipt['result']=='pass' and receipt.get('provenance') in ('local_subprocess','explicit_evidence_reuse') and
+                    receipt['subject']==current_subject and receipt['definition_digest']==digest(definition) and
+                    receipt['assertions_digest']==self.assertions(definition), 'failed or changed prerequisite: '+cid)
+            if max_age is not None:
+                require(0<=time.time()-receipt['finished_at']<=max_age, 'stale prerequisite: '+cid)
+            if receipt['id'] not in receipts:
+                receipts.append(receipt['id'])
+            pending.extend((dep,min(index,boundary) if boundary is not None else index) for dep in definition.get('requires',[]))
+        return receipts
+
     def check_results(self, s, release=False):
         self.candidate_ok(s)
         require(not any(d["answer"] is None for d in s["decisions"].values()), "material decision unanswered")
@@ -469,6 +517,7 @@ class Supervisor:
             matches = [r for r in s["receipts"] if r["check_id"] == definition["id"] and
                        r.get("plan_epoch") == s["plan_epoch"] and r["phase"] != "red"]
             require(matches, "missing observed check: " + definition["id"])
+            self.prerequisites(s,definition.get('requires',[]),before=s['receipts'].index(matches[-1]))
             latest = matches[-1]
             require(latest["result"] == "pass" and latest["subject"] == s["candidate"],
                     "failed or stale check: " + definition["id"])
@@ -525,13 +574,29 @@ class Supervisor:
             return self.status(s)
         if op == "start":
             c = validate_contract(d)
+            prior_runs = [json.loads(r[0]) for r in self.db.execute('SELECT state FROM runs')]
+            parent = None
+            if c.get('continues_run') is not None:
+                parent = next((p for p in prior_runs if p['id']==c['continues_run']),None)
+                if parent:
+                    parent = self.load(parent['id'],legacy=parent['version']!=VERSION)
+                require(parent and parent['repo']==str(self.repo) and parent['contract']['actor']==c['actor'] and
+                        parent['terminal'] in ('blocked','failed') and parent['execution'] is None and parent.get('cleanup'),
+                        'continuation requires reconciled failed/blocked owner run in this worktree')
+                require(not any(p['contract'].get('continues_run')==parent['id'] for p in prior_runs), 'continuation already exists')
+                require(c.get('repair_budget',3)<=parent['contract'].get('repair_budget',3), 'continuation cannot increase repair budget')
+            else:
+                normalized = {k:v for k,v in c.items() if k!='continues_run'}
+                require(not any(p['repo']==str(self.repo) and p['terminal'] in ('blocked','failed') and
+                                {k:v for k,v in p['contract'].items() if k!='continues_run'}==normalized for p in prior_runs),
+                        'matching failed mission requires explicit continuation')
             rid = "run-" + uuid.uuid4().hex[:12]
             s = {"id": rid, "version": VERSION, "graph_digest": digest(GRAPH), "repo": str(self.repo),
                  "contract": c, "contract_digest": digest(c), "revision": 0, "phase": "understand",
                  "inputs": {}, "decisions": {}, "recommendations": [], "checks": [], "receipts": [],
                  "candidate": None, "execution": None, "review": None, "release": None,
                  "resources": [], "delivery": None, "run_review": None, "terminal": None,
-                 "repairs": 0, "skills": [], "alignment": None, "plan_epoch": 0}
+                 "repairs": parent['repairs'] if parent else 0, "skills": [], "alignment": None, "plan_epoch": 0}
             self.save(s, "started", {"source": c["source_ref"]})
             return self.status(s)
         if op == "list":
@@ -781,6 +846,7 @@ class Supervisor:
                 if c["kind"] in ("behavior", "artifact"):
                     covered.update(criteria)
                 strings(c.get("test_files"), "test files")
+                self.assertions(c)
                 require(type(c.get("require_red")) is bool, "require_red must be boolean")
                 if c["require_red"]:
                     text(c.get("failure_contains"), "expected failure signature")
@@ -796,17 +862,38 @@ class Supervisor:
                     require(text(policy.get('reviewer'),'reuse scope reviewer')!=actor, 'reuse scope needs independent review')
                     text(policy.get('source_ref'),'reuse scope approval source')
                     text(policy.get('environment_coverage'),'observed environment coverage and immutable/resettable inputs')
+                    if policy.get('dependency_paths') is not None:
+                        self.dependency_paths(policy['dependency_paths'])
+                        require(not set(policy['dependency_paths']) & set(policy['narrative_paths']), 'dependency and narrative scopes overlap')
+                        text(policy.get('dependency_coverage'),'reviewed dependency closure coverage')
                 if c['kind']=='environment':
                     require(not criteria and not c['require_red'], 'environment is identity, not product acceptance or red proof')
             for c in checks:
                 if c.get('reuse'):
                     require(any(env['id']==c['reuse'].get('environment_check') and env['kind']=='environment' for env in checks), 'reuse needs a registered environment check')
+            by_id = {c['id']:c for c in checks}
+            remaining = {}
+            for c in checks:
+                ids = strings(c.get('requires',[]),'prerequisites',empty=True)
+                require(set(ids)<=set(by_id) and c['id'] not in ids, 'unknown or self prerequisite')
+                require(c['kind'] in ('release','production') or all(by_id[i]['kind'] not in ('release','production') for i in ids),
+                        'candidate check cannot require release prerequisite')
+                age = c.get('prerequisite_max_age_seconds')
+                require(age is None or (ids and type(age) is int and 1<=age<=600), 'invalid prerequisite freshness')
+                remaining[c['id']] = set(ids) | ({c['reuse']['environment_check']} if c.get('reuse') else set())
+            while remaining:
+                ready = {cid for cid,ids in remaining.items() if not ids}
+                require(ready,'cyclic prerequisites')
+                remaining = {cid:ids-ready for cid,ids in remaining.items() if cid not in ready}
+            freeze_requires = strings(d.get('freeze_requires',[]),'freeze prerequisites',empty=True)
+            require(set(freeze_requires)<=set(by_id) and all(by_id[i]['kind'] not in ('release','production') for i in freeze_requires), 'invalid freeze prerequisite')
             require(covered == self.criteria(s), "every acceptance criterion needs a behavior/artifact check")
             if s["contract"]["target"] in RELEASES:
                 require(any(c["kind"] == "release" for c in checks), "release target needs a release observation check")
                 if s["contract"]["target"] in ("production_verified", "staging_verified"):
                     require(any(c["kind"] == "production" for c in checks), "live behavior check required")
             s["checks"] = checks
+            s['freeze_requires'] = freeze_requires
             s["plan_epoch"] += 1
             s["plan_ref"] = text(d.get("source_ref"), "canonical plan source")
             s["phase"] = "build" if s["contract"]["lane"] in BUILD_LANES else "check"
@@ -817,6 +904,8 @@ class Supervisor:
             if d.get("contract") is not None:
                 c = validate_contract(d["contract"])
                 require(c["actor"] == actor, "revision cannot change controller")
+                require(c.get('continues_run')==s['contract'].get('continues_run'), 'revision cannot change continuation lineage')
+                require(c.get('repair_budget',3)<=s['contract'].get('repair_budget',3), 'revision cannot increase repair budget')
                 s["contract"], s["contract_digest"] = c, digest(c)
                 s["decisions"] = {}
                 s["alignment"] = None
@@ -829,6 +918,7 @@ class Supervisor:
             require(s["phase"] in ("build", "check"), "candidate can only freeze after plan/build")
             if s["contract"]["lane"] in BUILD_LANES:
                 self.has_writer(s)
+            s['freeze_receipt_ids'] = self.prerequisites(s,s.get('freeze_requires',[]))
             s["candidate"] = subject(self.repo)
             s['candidate_frozen_at'] = time.time()
             s["phase"] = "check"
@@ -968,14 +1058,17 @@ class Supervisor:
             require(not prior or all(r.get("assertions_digest") == fingerprint for r in prior),
                     "assertion files changed; replan explicitly")
             before = subject(self.repo)
-            if phase != "red" and s["phase"] in ("check", "release"):
+            if phase != "red" and s["phase"] in ("check", "release") and definition['kind']!='environment':
                 self.candidate_ok(s)
             execution = {"id": "check-" + uuid.uuid4().hex[:12], "check_id": definition["id"], "phase": phase,
                          "plan_epoch": s["plan_epoch"],
                          "subject": before, "definition_digest": digest(definition), "assertions_digest": fingerprint,
                          "started_at": time.time(), "controller_pid": os.getpid(), "child_pid": None}
+            execution['prerequisite_receipt_ids'] = self.prerequisites(s,definition.get('requires',[]),definition.get('prerequisite_max_age_seconds'))
             if definition.get('reuse'):
-                execution['reuse_evidence'] = {**self.reuse_dependencies(s,definition['reuse']['narrative_paths']),
+                if definition['reuse'].get('dependency_paths') is not None:
+                    require(not git(self.repo,'status','--porcelain'), 'scoped original execution needs clean committed source')
+                execution['reuse_evidence'] = {**self.reuse_dependencies(s,definition['reuse']['narrative_paths'],definition['reuse'].get('dependency_paths')),
                                               'environment':self.environment_receipt(s,definition)}
                 execution['contract_digest'] = s['contract_digest']
             s["execution"] = execution
@@ -1093,6 +1186,7 @@ class Supervisor:
                 "pending_inputs": [k for k, v in s["inputs"].items() if v["classification"] is None],
                 "open_decisions": [v for v in s["decisions"].values() if v["answer"] is None],
                 "questions_used": len(s["decisions"]), "candidate": s["candidate"],
+                "repairs": s['repairs'], "repair_budget": s['contract'].get('repair_budget',3),
                 "alignment_check_in_due": s["phase"] in ("understand", "plan") and answered > 0 and
                                           answered % GRAPH["question_check_in_interval"] == 0,
                 "checks": [{"id": c["id"], "kind": c["kind"]} for c in s["checks"]],

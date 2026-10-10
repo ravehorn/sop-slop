@@ -39,7 +39,72 @@ Maintain the mapping in the existing plan/runner: case and layer → assertion f
 entry point → prerequisites → receipt → remaining layer. Files must exist before
 registration; an exit-zero catalog validator does not prove executable coverage.
 
-## Select tests from the causal change
+## Preflight the real path
+
+Use these lenses where relevant within the existing plan/review, not as another
+approval ritual, mandatory cross-model pass or acceptance registry.
+
+- **Fixture causality and lifetime.** Prove a negative fixture changes the intended
+  field: an allowed comment need not advance a version; revoking an absent grant
+  changes nothing. Preserve the original initializer/caller chain and isolate only
+  the diagnostic leaf. Trace non-idempotent setup ownership and transaction
+  commit/rollback boundaries; fix duplicate callers, not the invariant rejecting
+  them. Reuse the authentic case identity throughout the journey. Account for
+  shared queue competition, runtime flags, leases and total reservation allowance
+  within authorized limits. Clean only owned jobs through existing public helpers
+  after assertions; never flush unrelated jobs or erase reservations. Use existing
+  atomic renewal before reclaim, not a racy read-then-act. Review snapshot effects
+  before adding a keeper. Run rollback diagnostics before publishing a retained
+  expiry fixture; preserve overwrite refusal and genuine natural-expiry checks.
+- **Dependency and API composition.** Compare assertion-level schema prerequisites,
+  ordered migrations and global metadata with a working maintained initializer;
+  inventory counts are not physical readiness. Check generated public signatures,
+  source operation allowlists and actual app callers. Confirm the type-check scope
+  includes test adapters. Smoke-import retained runtime modules and run actual test
+  discovery before costly setup. Extracted callbacks need their complete real
+  dependency/context closure; inspect sibling callers, not only the edited test.
+- **Actual producer → consumer.** Feed a real emitted envelope or safe retained
+  artifact through the unchanged reader, not just ideal handcrafted packets.
+  Exercise the same helper/callback on original and corrected revisions and
+  missing/wrong-type/identity/refusal controls. Trace the server's authoritative
+  owner and the oracle's selection: immutable creation receipts, current accepted
+  intent and cancellation generations are distinct. Inventory schema/caller keys
+  before closing a copy grammar; preserve declared authored roots and references.
+  Capture the complete raw source, not only normalized payload fields; unknown
+  fields fail closed without a completeness claim. Preserve first-capture identity
+  and expiry across failed writes/retries. Check every storage writer, including
+  asynchronous legacy writers, before claiming absence of plaintext.
+- **Rendered behavior.** Trace stable identity → naming precedence/locale/source
+  metadata → read/edit transitions → semantic accessible region. Do not replace
+  live authoritative names with stale fixture labels. Exercise the actual locator
+  expression with positive, missing, hidden and duplicate cases; avoid global
+  positional selection. Scope positive assertions without narrowing intentionally
+  global absence checks. For stale UI, test repeated enter/clear transitions and
+  inspect sibling-key collisions. Observe real focus, closing animations and
+  dismissal events before inventing catalog prerequisites. Accessibility and genuine
+  beforeunload confirmation remain behavior, not test-only attributes.
+- **Async effects and races.** Before narrowing a barrier's caller targeting,
+  inspect every later await through the actual transport/mutation boundary; keep
+  zero-request, late-response and scope-loss guards. Place observations after the
+  required effect but before redirect blocks page commands, preserving subsequent
+  navigation assertions. Prove contenders are ready with the actual actor, policy,
+  generation and served module identity. Mixed outcomes alone are insufficient.
+  Observe the common lock holder/blocking graph and both caller outcomes; client
+  enumeration does not establish queue order. Include reversed arrival and absent/
+  wrong-holder controls. A reproduction cannot explain an unretained historic graph.
+- **Installed interfaces and collection.** Probe actual SDK/database value types,
+  timestamp units and CLI/process I/O contracts (file descriptors, seekable archives,
+  temporary-file syntax). Preserve restore entries, ordering, owners, ACLs and RLS.
+  Normalize representation only after proving semantic equivalence, retaining
+  empty/default, grantee/grantor/options and other security negatives. Before freeze,
+  use existing independent review to compare critical collector selectors with
+  their domain owner and a fresh grouped read-only baseline; shape controls do not
+  prove correct extraction. Check owned private output parents and operation/check
+  namespaces. Keep generated caches outside immutable workdirs. If a harmless path
+  triggers credential redaction, rename it only after checking; do not disable the
+  secret guard or expose suspected credentials.
+
+## Diagnose narrowly, retain useful evidence
 
 Reproduce a failure narrowly, inspect the causal path and shared callers, fix one
 bounded cause, and run the minimal affected checks. Expand for a concrete shared
@@ -63,9 +128,8 @@ browser assertions should check observable product invariants rather than invent
 a required answer template. Display tolerance must preserve business values,
 stable IDs, permissions, absence of duplicate effects and expected error behavior.
 Normalize numeric display only where values are equivalent (for example `12.50`
-and `12.5`); do not round away meaningful differences. Assert refusals at the actual
-mutation boundary, and preserve the distinction between paused, stale and failed.
-Smoke-import the retained build's real runtime modules before a long journey.
+and `12.5`); first rule out wrong revision/owner selection. Preserve paused, stale
+and failed distinctions and refusals at the actual mutation boundary.
 
 For diagnostic/parser/format-only repairs, run the **same helper/assertion** offline
 first, using existing fixtures or the smallest shared seam, then run one final
@@ -74,6 +138,32 @@ full-stack retries until failure diagnostics and its focused regression are
 reliable. Genuine provider/pricing/runtime dependencies need their smallest real
 path; fixture proof cannot replace them or be reported as live evidence. Never
 adjust expectations to conceal a product defect. Retain broader release gates.
+
+After a second pre-browser setup failure, isolate the complete original fixture
+before another broad retry: use rollback-only execution where supported and omit
+downstream browser/provider launches, never required authentication. Retain the
+original initialization and prove cleanup/no published expiry state. A forbidden
+write that actually commits is a product defect, not an oracle exception. Setup
+errors do not count as intended red. Fix the shared owner and run directly affected
+maintained graph/controller assertions on that exact candidate before a real retry.
+
+Before temporary cleanup, retain a bounded, sanitized failure artifact in the
+existing owned private receipt location. Keep first causes, controlled assertion
+IDs, stage/hold reasons, subprocess exit/output, exact subject/epoch/contract and
+needed readback identities; do not rely on a tail that loses the cause. Use private
+permissions and limited retention; exclude credentials, raw Auth headers and trace
+bundles by default. Report truncation explicitly; use content-free progress counts
+and owner timings rather than SQL, IDs or credentials in chat. Save subprocess
+results before postvalidation, but preserve a failed integrity guard separately:
+it still blocks qualification. Never reconstruct unretained success, rewrite failed
+receipts or present a source inference as an observed hold reason.
+
+Await and inspect each state transition; a rejected plan/registration stops its
+dependent mutations. Stop a dependent check sequence on first failure. Resume only
+unexecuted work with valid existing proof, not by erasing failures or relabelling
+old receipts. The supervisor retains only a bounded redacted tail; private artifact
+retention and these semantic reviews are runner/agent responsibilities, not new
+automatically enforced controller guarantees.
 
 After **two unrelated infrastructure failures**, stop launching broad suites and
 diagnose the shared environment. Preserve failing receipts. Resume only after the
@@ -88,12 +178,24 @@ cheap admission check in the dependent check's `requires`; use bounded freshness
 when the measurements expire. Preserve database disks and stopped services; do not
 delete or restart them without scoped authority.
 
+## Qualify the bounded outcome
+
 Use focused checks during development and **one integrated** qualification at a
 coherent release boundary. A relevant executable change after qualification needs
 affected reverification; this is not permission to reuse stale evidence. Keep
 tenant/privacy, stale-write/duplicate-effect, data integrity, spending and recovery
 gates. Required linked migration-ledger checks before merge/closure still apply.
 No routine full-map audit or live-provider repeat for prose-only reporting.
+
+Split a repeatedly slow aggregate only at safe existing transaction/fixture
+boundaries. Preserve every original assertion, ordering dependency, fairness load,
+race owner and timeout; require all disjoint receipts against one coherent subject,
+plan epoch and contract (or explicitly qualified equivalence). Compare original
+assertion provenance/order, not totals inflated by approved sibling helpers. SQL
+exit zero, Auth setup or named browser subcase passes do not close parent private
+conservation checks or missing integration slots. Source, controlled DOM, real
+native, hosted and deployed proof stay separate. Keep full mounted/expiry/provider
+obligations open until observed; do not extend timeouts or invent alias passes.
 
 After two repeated repair/review cycles, or **one working day** without a deployable
 increment, checkpoint scope, elapsed time, blockers and next user outcome. Diagnose

@@ -46,3 +46,28 @@ legacy controller, coordination, reuse, replay and installer compatibility tests
 Use the final supervisor receipt/commit as execution evidence; this document does
 not preclaim a result. Deterministic disposable-repository proof is not evidence
 that RU01 or a paid-provider journey has passed in production.
+
+## Field-guidance consolidation — 2026-10-10
+
+Max authorized incorporating the subsequent sprint feedback, testing, pushing and
+merging while preserving active pins. The guidance is consolidated in the existing
+verification reference; the controller/graph is unchanged from v0.8.2. No new
+approval ritual, daemon, tracker, cross-model requirement or product-policy change.
+Reported SAGE results motivate the guidance; this release does not independently
+requalify them or publish their private artifacts.
+
+| Finding family | Maintained guidance |
+| --- | --- |
+| Invalid setup, duplicate installers, lost Task identity, scheduler/lease interference, expiry ordering | Fixture causality and lifetime |
+| Missing/ordered migrations, global registries, invented RPCs, undiscovered tests, extracted globals | Dependency and API composition |
+| Real packet/reader mismatch, stale revision owners, incomplete copy grammar, TTL retry and legacy plaintext writers | Actual producer → consumer |
+| Naming/locale, changing locators, duplicate keys, focus/closing animation, accessible positive/negative scopes | Rendered behavior |
+| Late authorization loss, redirect barriers, unready contenders, guessed lock order | Async effects and races |
+| Native types, restore/ACL equivalence, process I/O, wrong-domain collectors, output/cache/redaction collisions | Installed interfaces and collection |
+| Repeated setup failures, lost first causes, inferred holds, mutation after failed registration | Diagnose narrowly, retain useful evidence |
+| Slow aggregate splitting, assertion-count drift, partial case credit, unnecessary requalification | Qualify the bounded outcome; existing explicit reuse rules |
+
+Validation uses the existing package suite plus an independent scenario-based
+guidance evaluation and coverage review. No wording-match tests or new runtime
+mechanism are justified by these documentation changes. Pinned packages, active
+run state and historical receipts are not rewritten; reuse is never retrofitted.

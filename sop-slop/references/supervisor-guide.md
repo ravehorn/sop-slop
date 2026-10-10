@@ -15,6 +15,8 @@ python3 /path/to/sop-slop/scripts/supervisor.py lock --repo /path/to/repo --run 
 
 `list` finds earlier runs. Exit 0 means the operation succeeded, 1 is an observed
 check failure, 2 is an invalid request or failed gate. Errors are structured JSON.
+Await and inspect each result before dependent mutations. Use distinct operation
+and check output names; registration failure must stop the sequence.
 
 ## Start contract
 
@@ -125,6 +127,9 @@ Test files must exist inside the repository before **plan registration** and are
 rechecked before execution. Working directory is repo root. Timeout is
 1–600 seconds; output over 1 MiB fails. Only a redacted 4 KiB tail is retained.
 Redaction is best effort, so select safe commands. Failed results remain durable.
+For failures whose first cause would be lost, the runner must save a sanitized
+private artifact before temporary cleanup; see [diagnostic guidance](evidence-reuse.md).
+The supervisor does not archive full logs or browser traces automatically.
 
 ## Build and check
 

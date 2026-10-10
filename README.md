@@ -29,6 +29,12 @@ optional reviewed dependency closures require exact outside-change review.
 Release and production observations stay exact-revision checks. Adoption is explicit;
 existing pins remain. See [scope and verification](docs/ru01-execution-improvements.md).
 
+The verification guide incorporates field lessons on fixture causality/lifetime,
+actual producer-consumer contracts, asynchronous effects, semantic UI assertions
+and private failure diagnostics. These refine existing review—not extra gates or
+permission to weaken acceptance. Guidance-only revisions retain controller v0.8.2;
+pin the complete package by commit, not version label alone.
+
 Six active phases: understand, plan, build, check, release, finish. This is an
 in-task supervisor, not a background service, sandbox, host hook or guarantee of
 honest agent behavior. Host permissions remain authoritative. The old 41-node

@@ -108,7 +108,8 @@ If no map exists, follow existing project docs and propose one only when useful;
 do not create a new map or audit unrelated features on every task.
 
 1. Map each criterion/layer to real assertions, dependencies, receipt and remaining
-   obligation in the existing plan/runner. Assertion files must exist at plan time.
+   obligation in the existing plan/runner. Draft assertion files under your writer
+   lease before plan registration; files must exist then, but scaffolding is not proof.
    Prove an ordinary authentic user journey early, including existing-data edit/save
    and recovery where relevant; helper coverage is not a substitute. Put cheap
    oracle/environment checks in `requires` before expensive checks, and declare

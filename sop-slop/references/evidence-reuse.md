@@ -195,7 +195,9 @@ assertion provenance/order, not totals inflated by approved sibling helpers. SQL
 exit zero, Auth setup or named browser subcase passes do not close parent private
 conservation checks or missing integration slots. Source, controlled DOM, real
 native, hosted and deployed proof stay separate. Keep full mounted/expiry/provider
-obligations open until observed; do not extend timeouts or invent alias passes.
+obligations open until observed. Do not extend timeouts to mask a failure or invent
+alias passes; a justified limit change needs an explicitly approved plan within
+controller limits.
 
 After two repeated repair/review cycles, or **one working day** without a deployable
 increment, checkpoint scope, elapsed time, blockers and next user outcome. Diagnose

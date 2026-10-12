@@ -5,6 +5,46 @@ directory, SQLite and Python stdlib. No daemon, LLM coordinator or remote servic
 Every peer owns a separate worktree and branch. This is cooperative tooling, not
 a sandbox: arbitrary shell commands and external actors can bypass it.
 
+## Lean subagent delegation
+
+At planning and meaningful checkpoints, identify work that can finish independently
+of the lead's next action. Delegate when useful overlap outweighs briefing and
+integration cost; do small or tightly coupled work directly. No agent-count quota,
+extra approval gate, scheduler or nested manager layer. Use available host slots;
+a working lead plus up to three bounded subagents is a starting shape, not a rule.
+
+- The lead owns the critical path, integration, shared runtime and release. Useful
+  parallel outputs include an isolated implementation with focused tests, an audit
+  of the next gate's real interfaces/fixtures/observations, and independent review
+  or evidence reconciliation. Assign only currently useful work; authors cannot
+  independently approve their own changes.
+- Each brief names the outcome, exact base revision and needed sources, owned files,
+  dependencies, acceptance checks, resource limits and forbidden actions. Return a
+  commit or patch, actual check results and remaining gaps. Give minimal relevant
+  context, not an entire long transcript; do not delegate the same investigation
+  twice without a concrete independent-verification reason.
+- Concurrent writers require separate worktrees/branches and valid existing
+  coordination. In a shared checkout keep one writer; other agents read an immutable
+  snapshot or prepare patches outside it. Do not mutate a frozen test subject.
+  If isolation is unavailable, parallelize read-only preparation, not shared edits.
+- Continue independent work after dispatch; wait only when the next action needs
+  the result. While an expensive gate runs, inspect the next gate offline. One
+  native run serializes checks; separate runs do not make shared resources isolated.
+  Keep heavy DB/browser checks serialized unless isolation and measured capacity
+  support concurrency. Never multiply paid calls or divide a cap into per-agent caps.
+- Integrate at a coherent boundary, review changed findings and run affected checks;
+  perform required combined qualification once on the integrated candidate, not
+  automatically after every handoff. Preserve all acceptance and fresh-release rules.
+- Use compact event-driven updates. In Codex, `followup_task` resumes an idle
+  subagent; `send_message` alone does not. Separate user-owned chats still require
+  host messaging authorization. Record useful overlap, repeated expensive runs,
+  conflicts and available elapsed/token measurements in the existing checkpoint;
+  do not invent savings or add a parallel tracker.
+
+An authorized pilot on a running task is supplemental working guidance only:
+preserve its package pin, native state, acceptance gates, budgets and authority.
+It does not activate scoped coordination or permit concurrent native operations.
+
 ## Activate only at a drained checkpoint
 
 Preserve the old installed package. Use the reviewed new package by its immutable

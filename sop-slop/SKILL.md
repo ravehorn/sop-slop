@@ -114,7 +114,9 @@ do not create a new map or audit unrelated features on every task.
    and recovery where relevant; helper coverage is not a substitute. Put cheap
    oracle/environment checks in `requires` before expensive checks, and declare
    `freeze_requires` for the journey/readiness proof. No second acceptance catalog.
-2. Follow [scoped coordination](references/coordination.md). After explicit
+2. At planning and meaningful checkpoints, delegate independent deliverables when
+   useful; keep the lead working on the critical path. Use the lean subagent policy
+   in [scoped coordination](references/coordination.md). After explicit
    activation, acquire your own worktree writer lease before implementation.
    Independent worktrees develop concurrently; never edit another owner's tree.
    Integration and production share one short FIFO `delivery` claim. Tests need

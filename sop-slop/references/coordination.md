@@ -42,7 +42,13 @@ a working lead plus up to three bounded subagents is a starting shape, not a rul
   do not invent savings or add a parallel tracker.
 
 An authorized pilot on a running task is supplemental working guidance only:
-preserve its package pin, native state, acceptance gates, budgets and authority.
+preserve its immutable controller/SKILL package pin, run history and lineage,
+acceptance gates, budgets and authority. Preserving the pin does not freeze run
+state: normal authorized planning/replanning, freeze, checks, review, release and
+closure may continue through the pinned controller when their existing predicates
+are satisfied. This is not authority to reset state, bypass an exhausted repair
+limit, weaken acceptance, transfer stale proof or add paid calls. A replan retains
+history and requires proof valid for its new epoch; it is not a repair-budget bypass.
 It does not activate scoped coordination or permit concurrent native operations.
 
 ## Activate only at a drained checkpoint

@@ -40,6 +40,11 @@ a working lead plus up to three bounded subagents is a starting shape, not a rul
   host messaging authorization. Record useful overlap, repeated expensive runs,
   conflicts and available elapsed/token measurements in the existing checkpoint;
   do not invent savings or add a parallel tracker.
+- At a delegation checkpoint, report in the existing progress update:
+  `Delegated: agent → deliverable; kept serial: work → resource/dependency reason;
+  next join: result needed before action.` Name actual assignments, not intentions.
+  If none are useful or safe, state the concrete reason; do not create busywork,
+  duplicate completed reviews or add an approval gate to fill slots.
 
 An authorized pilot on a running task is supplemental working guidance only:
 preserve its immutable controller/SKILL package pin, run history and lineage,

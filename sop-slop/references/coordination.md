@@ -13,7 +13,8 @@ integration cost; do small or tightly coupled work directly. No agent-count quot
 extra approval gate, scheduler or nested manager layer. Use available host slots;
 a working lead plus up to three bounded subagents is a starting shape, not a rule.
 
-- The lead owns the critical path, integration, shared runtime and release. Useful
+- The lead owns critical-path decisions, integration, shared-resource coordination
+  and release, not personal execution of every check. Useful
   parallel outputs include an isolated implementation with focused tests, an audit
   of the next gate's real interfaces/fixtures/observations, and independent review
   or evidence reconciliation. Assign only currently useful work; authors cannot
@@ -27,11 +28,23 @@ a working lead plus up to three bounded subagents is a starting shape, not a rul
   coordination. In a shared checkout keep one writer; other agents read an immutable
   snapshot or prepare patches outside it. Do not mutate a frozen test subject.
   If isolation is unavailable, parallelize read-only preparation, not shared edits.
+- Separate check ownership from execution concurrency. Delegate useful browser and
+  database verification to bounded subagents, including execution, diagnosis and
+  evidence handoff within existing authority. Serialization is not a reason to
+  keep both on the lead. Assign the exact registered check, candidate/environment,
+  owned output paths and cleanup responsibility; preserve authentic receipt capture.
+- Run delegated checks concurrently when their actual fixtures, writes, ports,
+  services, output paths and cleanup cannot interfere, measured capacity is adequate,
+  and the pinned controller permits it. Browser/DB labels alone do not require
+  serialization; a browser may use the very database another check resets. Unknown
+  sharing requires inspection before overlap. One native run still serializes checks;
+  do not bypass it with raw commands, new runs or changed gates merely to overlap.
+  When constrained, retain subagent ownership and sequence execution through the
+  existing authorized owner/controller; overlap safe preparation or other useful work.
+  Never multiply paid calls or divide a cap into per-agent caps.
 - Continue independent work after dispatch; wait only when the next action needs
-  the result. While an expensive gate runs, inspect the next gate offline. One
-  native run serializes checks; separate runs do not make shared resources isolated.
-  Keep heavy DB/browser checks serialized unless isolation and measured capacity
-  support concurrency. Never multiply paid calls or divide a cap into per-agent caps.
+  the result. The lead does not duplicate delegated checks or rerun valid results
+  merely to take ownership; retain required integration and fresh-release checks.
 - Integrate at a coherent boundary, review changed findings and run affected checks;
   perform required combined qualification once on the integrated candidate, not
   automatically after every handoff. Preserve all acceptance and fresh-release rules.

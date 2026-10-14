@@ -32,7 +32,8 @@ a working lead plus up to three bounded subagents is a starting shape, not a rul
   database verification to bounded subagents, including execution, diagnosis and
   evidence handoff within existing authority. Serialization is not a reason to
   keep both on the lead. Assign the exact registered check, candidate/environment,
-  owned output paths and cleanup responsibility; preserve authentic receipt capture.
+  owned output paths, cleanup responsibility and authorized controller dispatcher
+  (which may differ from the check owner); preserve authentic receipt capture.
 - Run delegated checks concurrently when their actual fixtures, writes, ports,
   services, output paths and cleanup cannot interfere, measured capacity is adequate,
   and the pinned controller permits it. Browser/DB labels alone do not require
@@ -137,8 +138,9 @@ Release shared claims and cancel queues before releasing the tree.
 An unclassified check requires `test:unclassified`. After inspecting its actual
 environment, call `coordination` with `action:tests`, `resources:["test:name"]`
 or `resources:[]` and a `source_ref` proving isolation. Empty means no shared mutable
-resource, not “unknown.” Every check in that run uses this declaration, so split
-different environments into separate runs or declare the conservative common lock.
+resource, not “unknown.” Every check in that run uses this declaration. When planning
+new runs, split different environments or declare the conservative common lock;
+this does not authorize restructuring an active pinned run to gain concurrency.
 Production checks and `release` require `delivery` regardless of test declaration.
 Changed fixture/command semantics require explicit plan revision, not a relabel.
 

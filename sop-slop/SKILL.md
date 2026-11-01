@@ -86,6 +86,13 @@ boundary, non-goals, finite exit predicates and next deployed learning milestone
 Do not make a whole roadmap or unrelated later feature the first release gate.
 Keep implemented, qualified-for-environment and deployed states distinct.
 
+For contract changes, discover current executable owners and real callers first.
+Keep shared boundary adapters, runtime validation, contract tests and concise
+current docs aligned in the same change; follow the [contract-maintenance
+loop](references/evidence-reuse.md#maintain-executable-contracts). Prove the ordinary
+lifecycle's model-free real boundaries before expensive provider/performance work;
+intrinsically provider-dependent behavior still needs its smallest genuine path.
+
 Before expensive execution, trace the actual fixture → producer → consumer →
 effect path, including prerequisites, authoritative revisions and lifecycle.
 Use the existing review and check plan, not another gate or tracker. Classify

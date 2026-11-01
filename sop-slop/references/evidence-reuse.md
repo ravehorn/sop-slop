@@ -39,6 +39,53 @@ Maintain the mapping in the existing plan/runner: case and layer → assertion f
 entry point → prerequisites → receipt → remaining layer. Files must exist before
 registration; an exit-zero catalog validator does not prove executable coverage.
 
+## Maintain executable contracts
+
+Apply this loop to the affected boundary, not as a whole-repository prerequisite.
+Read the executable producer, actual UI/tool callers, runner and fixtures before
+editing; generated types and historical release journals are not sufficient truth.
+Resolve any mismatch with approved behavior instead of blessing current code merely
+because it exists. Distinguish a mutation receipt from a subsequent authoritative
+read: IDs/receipt do not imply the response contains current version/hash or values.
+
+- Reuse or consolidate one maintained typed adapter/validator per shared boundary
+  across UI, tools and fixtures where the runtimes permit it. Across runtimes,
+  share a versioned schema and conformance cases rather than inventing incompatible
+  wrappers. Keep actor/auth/effect authority at the server; do not add a parallel
+  action path or a broad adapter framework.
+- Runtime-validate JSON RPC inputs and outputs at that boundary. A generated
+  `Json` type or cast is not validation. Check required fields, types, identity,
+  error variants and authoritative follow-up reads. Compare mocks against real or
+  sanitized authoritative output using the same decoder; reject malformed/stale
+  cases. A mock matching another mock does not prove the contract.
+- Before expensive provider/performance work, exercise the ordinary model-free
+  portions of the lifecycle through the actual entrypoint and real owned boundaries,
+  including required inputs, readback and, where relevant, recovery/replay and cleanup.
+  Intrinsically provider-dependent behavior still needs its smallest genuine path.
+  Preflight the actual
+  nested interpreter/cache/config and fixture dependencies before allocation.
+  Use the project's authorized runner/environment; destructive tests need an owned
+  disposable resource. Source inspection, imports and synthetic responses cannot
+  substitute for this proof or for later real-provider/performance qualification.
+- Version executable runners and adapters with source. Keep private files for
+  configuration, secrets and evidence, not the sole maintained executable path.
+  Derive repeated budgets/configuration from one canonical source and test that
+  planners, admission guards and runtime consumers agree; do not increase limits
+  or infer authorization to make them agree.
+- Maintain a concise current contract entry with owner/callers, request/response
+  and error semantics, authoritative readback, verification recipe and known gaps.
+  Link existing canonical docs/feature maps and keep dated release evidence as
+  history. In the same change update adapter/schema, affected contract cases and
+  that entry, or record why one is unchanged. Use existing scoped CI/review to
+  check drift and examples against actual producers/consumers, not a timestamp-only
+  check or another tracker/controller. Point repository instructions to the owner
+  rather than duplicating contracts there. No ritual approval or new global service.
+
+Apply new guidance prospectively. Do not hotpatch active package pins, silently
+change a running plan or reinterpret historical receipts; use existing explicit
+revision/adoption and proof rules, preserving invalidation and budgets. This loop
+does not grant additional spending or release authority.
+
 ## Preflight the real path
 
 Use these lenses where relevant within the existing plan/review, not as another

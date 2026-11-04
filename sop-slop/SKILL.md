@@ -3,7 +3,7 @@ name: sop-slop
 description: Use for substantial product features, domain changes, or annotation batches that need intent alignment, bounded implementation and verified delivery. Also use for explicitly requested product reviews or strategy decisions. Not for isolated, already-clear small fixes.
 ---
 
-# SOP SLOP v0.8.2
+# SOP SLOP v0.8.3
 
 Turn what the user means into working, checked behavior. Keep one mission, ask
 only questions that change it, and continue until its requested finish is proved
@@ -205,6 +205,12 @@ boundaries. No paused memory/company service is required or restarted.
 blocked/failed predicate. Reconcile run-owned resources after sealing. Preserve
 dirty/shared/unpushed/unmerged/unknown resources with reasons. Destructive cleanup
 needs separate exact-target approval; the supervisor does not delete them.
+Use [retention and cleanup](references/retention.md) before releasing resources:
+record a fresh exact-target decision, check it, perform only authorized host cleanup,
+then reconcile the observed result. Do not leave eligible disposable scratch behind
+after its final consumer finishes. Retained evidence needs a reason and revisit
+condition; later use the same run's retention lifecycle, not a new delivery run.
+Age or completion alone never authorizes deleting audit evidence or shared stores.
 Then `finish` records safety, outcome, corrections/failures, unnecessary questions,
 and an evidence-backed improvement if warranted. Learning is a linked proposal,
 not an automatic skill/policy change. Delivery stays sealed.

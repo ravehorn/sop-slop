@@ -20,7 +20,11 @@ See [coordination and safe adoption](sop-slop/references/coordination.md).
 Activation requires a drained checkpoint and explicitly fences older controllers;
 do not overwrite an active run's pinned package.
 
-Version 0.8.2 adds [execution readiness and bounded evidence reuse](sop-slop/references/evidence-reuse.md):
+Version 0.8.3 adds [exact-target retention decisions and reconciliation](sop-slop/references/retention.md).
+It leaves installed pins and the live store unchanged; database compaction is a
+separate [migration/recovery plan](docs/retention-v1.md), not an automatic action.
+
+Version 0.8.2 added [execution readiness and bounded evidence reuse](sop-slop/references/evidence-reuse.md):
 keep focused repairs narrow and qualify once at a coherent release boundary.
 Missing assertion files fail at plan time; declared prerequisites gate expensive
 checks and readiness gates freeze. Failed-run continuations retain repair budgets.
@@ -32,7 +36,7 @@ existing pins remain. See [scope and verification](docs/ru01-execution-improveme
 The verification guide incorporates field lessons on fixture causality/lifetime,
 actual producer-consumer contracts, asynchronous effects, semantic UI assertions
 and private failure diagnostics. These refine existing review—not extra gates or
-permission to weaken acceptance. Guidance-only revisions retain controller v0.8.2;
+permission to weaken acceptance. Prior guidance-only revisions retained v0.8.2;
 pin the complete package by commit, not version label alone.
 
 Six active phases: understand, plan, build, check, release, finish. This is an

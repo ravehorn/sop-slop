@@ -291,9 +291,9 @@ class SupervisorTests(unittest.TestCase):
         self.op("resource", id="artifact", path=str(self.repo / "product.py"), kind="file", source_ref="run:created")
         self.green()
         delivery = self.op("seal")["delivery"]
-        with self.assertRaisesRegex(mod.GateError, "still exists"):
+        with self.assertRaisesRegex(mod.GateError, "retention decision"):
             self.op("cleanup", note="delete", dispositions={"artifact": {"state": "released", "reason": "done"}})
-        self.op("cleanup", note="retain product", dispositions={"artifact": {"state": "preserved", "reason": "user deliverable"}})
+        self.op("cleanup", note="retain product", dispositions={"artifact": {"state": "preserved", "reason": "user deliverable", "revisit_when": "never automatically; canonical deliverable"}})
         result = self.op("finish", classification="executor_issue", finding="invariant breach", source_ref="review:2",
                          hard_invariant_breach=True)
         self.assertEqual(result["terminal"], "failed")

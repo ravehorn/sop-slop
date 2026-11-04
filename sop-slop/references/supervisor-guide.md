@@ -202,6 +202,12 @@ the actual candidate and reverifying.
 
 ## Closure
 
+Controller 0.8.3 adds `retention`, `retention-check` and terminal-only
+`retention-reconcile`; see [the exact-target lifecycle](retention.md).
+`cleanup` now requires a fresh pre-action decision for released paths. Preservation
+remains valid without deletion authority. None of these operations deletes files
+or compacts the database.
+
 - `resource`: `id`, exact `path`, `kind`, ownership `source_ref`. These rows cover
   run-owned filesystem items only, never broad roots. Record external process/port
   cleanup as attributed host evidence in the cleanup note; do not invent a path.

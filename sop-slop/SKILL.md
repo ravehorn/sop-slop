@@ -3,7 +3,7 @@ name: sop-slop
 description: Use for substantial product features, domain changes, or annotation batches that need intent alignment, bounded implementation and verified delivery. Also use for explicitly requested product reviews or strategy decisions. Not for isolated, already-clear small fixes.
 ---
 
-# SOP SLOP v0.8.2
+# SOP SLOP v0.8.3
 
 Turn what the user means into working, checked behavior. Keep one mission, ask
 only questions that change it, and continue until its requested finish is proved
@@ -86,6 +86,13 @@ boundary, non-goals, finite exit predicates and next deployed learning milestone
 Do not make a whole roadmap or unrelated later feature the first release gate.
 Keep implemented, qualified-for-environment and deployed states distinct.
 
+For contract changes, discover current executable owners and real callers first.
+Keep shared boundary adapters, runtime validation, contract tests and concise
+current docs aligned in the same change; follow the [contract-maintenance
+loop](references/evidence-reuse.md#maintain-executable-contracts). Prove the ordinary
+lifecycle's model-free real boundaries before expensive provider/performance work;
+intrinsically provider-dependent behavior still needs its smallest genuine path.
+
 Before expensive execution, trace the actual fixture → producer → consumer →
 effect path, including prerequisites, authoritative revisions and lifecycle.
 Use the existing review and check plan, not another gate or tracker. Classify
@@ -114,7 +121,9 @@ do not create a new map or audit unrelated features on every task.
    and recovery where relevant; helper coverage is not a substitute. Put cheap
    oracle/environment checks in `requires` before expensive checks, and declare
    `freeze_requires` for the journey/readiness proof. No second acceptance catalog.
-2. Follow [scoped coordination](references/coordination.md). After explicit
+2. At planning and meaningful checkpoints, delegate independent deliverables when
+   useful; keep the lead working on the critical path. Use the lean subagent policy
+   in [scoped coordination](references/coordination.md). After explicit
    activation, acquire your own worktree writer lease before implementation.
    Independent worktrees develop concurrently; never edit another owner's tree.
    Integration and production share one short FIFO `delivery` claim. Tests need
@@ -196,6 +205,12 @@ boundaries. No paused memory/company service is required or restarted.
 blocked/failed predicate. Reconcile run-owned resources after sealing. Preserve
 dirty/shared/unpushed/unmerged/unknown resources with reasons. Destructive cleanup
 needs separate exact-target approval; the supervisor does not delete them.
+Use [retention and cleanup](references/retention.md) before releasing resources:
+record a fresh exact-target decision, check it, perform only authorized host cleanup,
+then reconcile the observed result. Do not leave eligible disposable scratch behind
+after its final consumer finishes. Retained evidence needs a reason and revisit
+condition; later use the same run's retention lifecycle, not a new delivery run.
+Age or completion alone never authorizes deleting audit evidence or shared stores.
 Then `finish` records safety, outcome, corrections/failures, unnecessary questions,
 and an evidence-backed improvement if warranted. Learning is a linked proposal,
 not an automatic skill/policy change. Delivery stays sealed.

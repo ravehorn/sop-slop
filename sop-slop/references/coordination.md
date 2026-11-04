@@ -5,6 +5,71 @@ directory, SQLite and Python stdlib. No daemon, LLM coordinator or remote servic
 Every peer owns a separate worktree and branch. This is cooperative tooling, not
 a sandbox: arbitrary shell commands and external actors can bypass it.
 
+## Lean subagent delegation
+
+At planning and meaningful checkpoints, identify work that can finish independently
+of the lead's next action. Delegate when useful overlap outweighs briefing and
+integration cost; do small or tightly coupled work directly. No agent-count quota,
+extra approval gate, scheduler or nested manager layer. Use available host slots;
+a working lead plus up to three bounded subagents is a starting shape, not a rule.
+
+- The lead owns critical-path decisions, integration, shared-resource coordination
+  and release, not personal execution of every check. Useful
+  parallel outputs include an isolated implementation with focused tests, an audit
+  of the next gate's real interfaces/fixtures/observations, and independent review
+  or evidence reconciliation. Assign only currently useful work; authors cannot
+  independently approve their own changes.
+- Each brief names the outcome, exact base revision and needed sources, owned files,
+  dependencies, acceptance checks, resource limits and forbidden actions. Return a
+  commit or patch, actual check results and remaining gaps. Give minimal relevant
+  context, not an entire long transcript; do not delegate the same investigation
+  twice without a concrete independent-verification reason.
+- Concurrent writers require separate worktrees/branches and valid existing
+  coordination. In a shared checkout keep one writer; other agents read an immutable
+  snapshot or prepare patches outside it. Do not mutate a frozen test subject.
+  If isolation is unavailable, parallelize read-only preparation, not shared edits.
+- Separate check ownership from execution concurrency. Delegate useful browser and
+  database verification to bounded subagents, including execution, diagnosis and
+  evidence handoff within existing authority. Serialization is not a reason to
+  keep both on the lead. Assign the exact registered check, candidate/environment,
+  owned output paths, cleanup responsibility and authorized controller dispatcher
+  (which may differ from the check owner); preserve authentic receipt capture.
+- Run delegated checks concurrently when their actual fixtures, writes, ports,
+  services, output paths and cleanup cannot interfere, measured capacity is adequate,
+  and the pinned controller permits it. Browser/DB labels alone do not require
+  serialization; a browser may use the very database another check resets. Unknown
+  sharing requires inspection before overlap. One native run still serializes checks;
+  do not bypass it with raw commands, new runs or changed gates merely to overlap.
+  When constrained, retain subagent ownership and sequence execution through the
+  existing authorized owner/controller; overlap safe preparation or other useful work.
+  Never multiply paid calls or divide a cap into per-agent caps.
+- Continue independent work after dispatch; wait only when the next action needs
+  the result. The lead does not duplicate delegated checks or rerun valid results
+  merely to take ownership; retain required integration and fresh-release checks.
+- Integrate at a coherent boundary, review changed findings and run affected checks;
+  perform required combined qualification once on the integrated candidate, not
+  automatically after every handoff. Preserve all acceptance and fresh-release rules.
+- Use compact event-driven updates. In Codex, `followup_task` resumes an idle
+  subagent; `send_message` alone does not. Separate user-owned chats still require
+  host messaging authorization. Record useful overlap, repeated expensive runs,
+  conflicts and available elapsed/token measurements in the existing checkpoint;
+  do not invent savings or add a parallel tracker.
+- At a delegation checkpoint, report in the existing progress update:
+  `Delegated: agent → deliverable; kept serial: work → resource/dependency reason;
+  next join: result needed before action.` Name actual assignments, not intentions.
+  If none are useful or safe, state the concrete reason; do not create busywork,
+  duplicate completed reviews or add an approval gate to fill slots.
+
+An authorized pilot on a running task is supplemental working guidance only:
+preserve its immutable controller/SKILL package pin, run history and lineage,
+acceptance gates, budgets and authority. Preserving the pin does not freeze run
+state: normal authorized planning/replanning, freeze, checks, review, release and
+closure may continue through the pinned controller when their existing predicates
+are satisfied. This is not authority to reset state, bypass an exhausted repair
+limit, weaken acceptance, transfer stale proof or add paid calls. A replan retains
+history and requires proof valid for its new epoch; it is not a repair-budget bypass.
+It does not activate scoped coordination or permit concurrent native operations.
+
 ## Activate only at a drained checkpoint
 
 Preserve the old installed package. Use the reviewed new package by its immutable
@@ -73,8 +138,9 @@ Release shared claims and cancel queues before releasing the tree.
 An unclassified check requires `test:unclassified`. After inspecting its actual
 environment, call `coordination` with `action:tests`, `resources:["test:name"]`
 or `resources:[]` and a `source_ref` proving isolation. Empty means no shared mutable
-resource, not “unknown.” Every check in that run uses this declaration, so split
-different environments into separate runs or declare the conservative common lock.
+resource, not “unknown.” Every check in that run uses this declaration. When planning
+new runs, split different environments or declare the conservative common lock;
+this does not authorize restructuring an active pinned run to gain concurrency.
 Production checks and `release` require `delivery` regardless of test declaration.
 Changed fixture/command semantics require explicit plan revision, not a relabel.
 

@@ -23,6 +23,7 @@ VERSION = GRAPH["version"]
 LEGACY_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.7.1.json").read_text())
 PRIOR_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.8.0.json").read_text())
 REUSE_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.8.1.json").read_text())
+READINESS_GRAPH = json.loads((GRAPH_PATH.parent / "supervisor-graph-0.8.2.json").read_text())
 TARGETS = {"decision_complete", "spec_complete", "review_complete", "candidate_verified",
            "pr_opened", "merged", "staging_verified", "production_verified"}
 RELEASES = {"pr_opened": "pr", "merged": "merge", "staging_verified": "staging",
@@ -209,7 +210,7 @@ class Supervisor:
         require(row is not None, "unknown run")
         state = json.loads(row[0])
         require(state["repo"] == str(self.repo), "run belongs to another worktree; use its recorded repository")
-        graph = {g['version']: g for g in (LEGACY_GRAPH, PRIOR_GRAPH, REUSE_GRAPH)}.get(state['version'], LEGACY_GRAPH) if legacy else GRAPH
+        graph = {g['version']: g for g in (LEGACY_GRAPH, PRIOR_GRAPH, REUSE_GRAPH, READINESS_GRAPH)}.get(state['version'], LEGACY_GRAPH) if legacy else GRAPH
         require(state["version"] == graph['version'], "run version differs; resume with its pinned supervisor or explicitly adopt")
         require(state["graph_digest"] == digest(graph), "graph changed; resume with its pinned supervisor")
         require(state["contract_digest"] == digest(state["contract"]), "contract integrity mismatch")
@@ -230,6 +231,107 @@ class Supervisor:
         require(s["execution"] is None, "execution outcome pending; inspect or reconcile it first")
         if not pending:
             require(not any(i["classification"] is None for i in s["inputs"].values()), "classify pending input first")
+
+    def retention_safe(self, s, resource):
+        """Conservative native checks; host inspection is still required before disposal."""
+        require(s['delivery'] and s['delivery']['status'] == 'completed' and
+                s['terminal'] in (None, 'completed'), 'release requires completed delivery')
+        require(s['execution'] is None, 'pending execution prevents retention release')
+        require(not any(i['classification'] is None for i in s['inputs'].values()), 'classify pending input first')
+        require(not self.work_list(s), 'pending work may still need resources; preserve them')
+        require(resource['kind'] in ('scratch', 'redundant_evidence'), 'protected resource kind; preserve it')
+        path = Path(resource['path'])
+        require(not path.is_symlink() and path.resolve() == path, 'symlink or redirected resource path')
+        def overlaps(a, b):
+            return a == b or a in b.parents or b in a.parents
+        protected = (self.repo, self.common, Path.home() / '.codex', Path.home() / '.agents')
+        require(path != Path.home() and path != Path('/') and
+                not any(overlaps(path, p) for p in protected), 'protected resource path')
+        for other in s['resources']:
+            if other['id'] != resource['id']:
+                require(not overlaps(path, Path(other['path'])), 'same-run resources overlap target')
+        for row in self.db.execute('SELECT id,state FROM runs WHERE id != ?', (s['id'],)):
+            peer = json.loads(row['state'])
+            require(peer['contract'].get('continues_run') != s['id'], 'continuation may need resources')
+            require(not overlaps(path, Path(peer['repo'])), 'peer worktree overlaps resource')
+            for other in peer['resources']:
+                if (other.get('disposition') or {}).get('state') != 'released':
+                    require(not overlaps(path, Path(other['path'])), 'peer resource overlaps target')
+        # Test/delivery claims have no filesystem scope: require the owner to release
+        # them explicitly, never infer that a paused process has stopped using files.
+        claims = self.db.execute('SELECT key FROM claims WHERE run_id=?', (s['id'],)).fetchall()
+        require(not self.db.execute('SELECT 1 FROM claim_queue WHERE run_id=?', (s['id'],)).fetchone(),
+                'release outstanding claim requests before retention')
+        require(all(c['key'] == 'worktree:' + s['repo'] for c in claims) and
+                (s['terminal'] is None or not claims), 'release outstanding claims before retention')
+
+    def retention_decision(self, s, d):
+        require(s['delivery'] and s['execution'] is None, 'seal and reconcile execution before retention')
+        decisions = d.get('dispositions')
+        require(isinstance(decisions, dict) and set(decisions) == {r['id'] for r in s['resources']},
+                'retention must cover exactly the registered resources')
+        records = {}
+        for resource in s['resources']:
+            choice = decisions[resource['id']]
+            require(isinstance(choice, dict) and choice.get('state') in ('preserve', 'release'), 'invalid retention decision')
+            record = {'state': choice['state'], 'reason': text(choice.get('reason'), 'retention reason'),
+                      'path': resource['path']}
+            if choice['state'] == 'preserve':
+                record['revisit_when'] = text(choice.get('revisit_when'), 'retention revisit condition')
+            else:
+                self.retention_safe(s, resource)
+                require(choice.get('no_longer_needed') is True and choice.get('holds') == [],
+                        'required or unknown evidence must be preserved')
+                record.update(authority_source=text(choice.get('authority_source'), 'exact-target cleanup authority'),
+                              inspection_source=text(choice.get('inspection_source'), 'ownership and dependency inspection'))
+                if resource['kind'] == 'redundant_evidence':
+                    record['replacement_source'] = text(choice.get('replacement_source'), 'retained audit evidence manifest')
+                    record['restore_source'] = text(choice.get('restore_source'), 'verified restoration evidence')
+                path = Path(resource['path'])
+                require(path.exists(), 'resource missing before retention decision; reconcile unknown disposal')
+                stat = path.stat()
+                require(path.is_dir() or (path.is_file() and stat.st_nlink == 1), 'special or multiply linked resource')
+                record['identity'] = {'device': stat.st_dev, 'inode': stat.st_ino,
+                                      'mtime_ns': stat.st_mtime_ns, 'size': stat.st_size}
+            records[resource['id']] = record
+        s['retention'] = {'schema_version': 1, 'revision': s['revision'] + 1,
+                          'resources_digest': digest(s['resources']), 'decisions': records}
+        self.save(s, 'retention_decided', {'decision_digest': digest(s['retention'])})
+        return self.status(s)
+
+    def retention_release(self, s, resource):
+        receipt = s.get('retention') or {}
+        require(receipt.get('revision') == s['revision'] and
+                receipt.get('resources_digest') == digest(s['resources']), 'missing or stale retention decision')
+        decision = receipt['decisions'].get(resource['id'], {})
+        require(decision.get('state') == 'release' and decision.get('path') == resource['path'],
+                'resource was not approved for release')
+        self.retention_safe(s, resource)
+
+    def reconcile_resources(self, s, d):
+        require(s['execution'] is None, 'pending execution prevents cleanup')
+        dispositions = d.get('dispositions', {})
+        require(isinstance(dispositions, dict) and set(dispositions) == {r['id'] for r in s['resources']},
+                'every resource needs exactly one disposition')
+        # Validate the entire batch against the original resource digest before mutation.
+        for resource in s['resources']:
+            disposition = dispositions[resource['id']]
+            require(isinstance(disposition, dict), 'every resource needs a disposition')
+            state = disposition.get('state')
+            require(state in ('preserved', 'released'), 'invalid resource disposition')
+            text(disposition.get('reason'), 'resource reason')
+            if state == 'preserved' and (resource.get('disposition') or {}).get('state') != 'released':
+                text(disposition.get('revisit_when'), 'retention revisit condition')
+            if state == 'released':
+                self.retention_release(s, resource)
+                require(not Path(resource['path']).exists() and not Path(resource['path']).is_symlink(),
+                        'released resource still exists')
+                text(disposition.get('source_ref'), 'cleanup action evidence')
+        for resource in s['resources']:
+            if (resource.get('disposition') or {}).get('state') != 'released':
+                resource['disposition'] = dispositions[resource['id']]
+        return {'time': time.time(), 'resources_digest': digest(s['resources']),
+                'note': text(d.get('note'), 'cleanup note')}
 
     def has_writer(self, s):
         if self.parallel():
@@ -727,23 +829,31 @@ class Supervisor:
         if op == "cleanup":
             require(s["delivery"], "seal delivery before cleanup")
             require(s["terminal"] is None, "run already terminal")
-            for resource in s["resources"]:
-                disposition = d.get("dispositions", {}).get(resource["id"])
-                require(isinstance(disposition, dict), "every resource needs a disposition")
-                state = disposition.get("state")
-                require(state in ("preserved", "released"), "invalid resource disposition")
-                text(disposition.get("reason"), "resource reason")
-                if state == "released":
-                    require(not Path(resource["path"]).exists() and not Path(resource["path"]).is_symlink(),
-                            "released resource still exists")
-                    text(disposition.get("source_ref"), "cleanup action evidence")
-                resource["disposition"] = disposition
-            s["cleanup"] = {"time": time.time(), "resources_digest": digest(s["resources"]),
-                            "note": text(d.get("note"), "cleanup note")}
+            s["cleanup"] = self.reconcile_resources(s, d)
             self.db.execute("DELETE FROM writer WHERE slot=1 AND run_id=?", (run,))
             self.db.execute('DELETE FROM claims WHERE run_id=?', (run,))
             self.db.execute('DELETE FROM claim_queue WHERE run_id=?', (run,))
             self.save(s, "cleanup_reconciled", s["cleanup"])
+            return self.status(s)
+        if op == 'retention':
+            return self.retention_decision(s, d)
+        if op == 'retention-check':
+            for resource in s['resources']:
+                decision = (s.get('retention') or {}).get('decisions', {}).get(resource['id'], {})
+                if decision.get('state') == 'release':
+                    self.retention_release(s, resource)
+                    path = Path(resource['path'])
+                    require(path.exists(), 'resource missing before action; reconcile unknown disposal')
+                    stat = path.stat()
+                    require(decision['identity'] == {'device': stat.st_dev, 'inode': stat.st_ino,
+                            'mtime_ns': stat.st_mtime_ns, 'size': stat.st_size}, 'resource identity changed')
+            require(s.get('retention') is not None, 'no retention decision')
+            return {'decision_digest': digest(s['retention']), 'limit': 'Host must keep owners stopped and recheck exact targets before action.'}
+        if op == 'retention-reconcile':
+            require(s['terminal'] is not None, 'use cleanup for initial closure')
+            receipt = self.reconcile_resources(s, d)
+            s['retention_reconciliation'] = receipt
+            self.save(s, 'retention_reconciled', receipt)
             return self.status(s)
         if op == "finish":
             require(s["delivery"] and s.get("cleanup"), "delivery and cleanup receipts required")
@@ -972,7 +1082,11 @@ class Supervisor:
             s["phase"] = "release"
             self.save(s, "release_entered", {"authority": sorted(granted)})
         elif op == "resource":
-            path = Path(text(d.get("path"), "resource path")).resolve()
+            raw_path = Path(text(d.get("path"), "resource path"))
+            path = raw_path.resolve()
+            if d.get('kind') in ('scratch', 'redundant_evidence'):
+                require(raw_path.is_absolute() and raw_path == path and not raw_path.is_symlink(),
+                        'disposable resource needs canonical non-symlink path')
             require(path not in (Path("/"), Path.home(), self.repo, self.common), "broad resource target forbidden")
             resource_id = identifier(d.get("id"), "resource id")
             require(not any(r["id"] == resource_id for r in s["resources"]), "resource already registered")
@@ -1193,6 +1307,7 @@ class Supervisor:
                 "last_results": {r["check_id"]: {"result": r["result"], "id": r["id"]} for r in s["receipts"]},
                 "execution": s["execution"], "work": self.work_list(s), "resources": s["resources"],
                 "delivery": s["delivery"], "cleanup": s.get("cleanup"), "review": s["run_review"], "terminal": s["terminal"],
+                "retention": s.get('retention'), "retention_reconciliation": s.get('retention_reconciliation'),
                 "coordination": self.coordination_status(s)}
 
 
@@ -1201,7 +1316,8 @@ def main():
     p.add_argument("operation", choices=["start", "list", "status", "input", "classify", "decision", "answer", "lock",
                     "plan", "revise", "lease", "check", "recover-check", "freeze", "review", "repair", "authorize",
                     "release", "resource", "skill", "seal", "cleanup", "finish", "stop", "work", "dispatch", "audit", "export",
-                    "coordination", "adopt", "adopt-check", "checkpoint", "signal", "inbox", "reuse", "review-reuse"])
+                    "coordination", "adopt", "adopt-check", "checkpoint", "signal", "inbox", "reuse", "review-reuse",
+                    "retention", "retention-check", "retention-reconcile"])
     p.add_argument("--repo", default=".")
     p.add_argument("--run")
     p.add_argument("--actor")

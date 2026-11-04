@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "0.8.2",
+  "version": "0.8.3",
   "phases": ["understand", "plan", "build", "check", "release", "finish"],
   "edges": [
     ["understand", "plan", "alignment_locked"],
@@ -35,6 +35,7 @@
     "delivery_sealed_before_cleanup_and_review",
     "uncertain_dispatch_never_retried_blindly",
     "no_automatic_destructive_cleanup",
+    "resource_release_requires_fresh_exact_retention_decision",
     "learning_is_proposal_only"
   ]
 }
